@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
+import GlowCard from "@/components/GlowCard";
+import InteractiveButton from "@/components/InteractiveButton";
 
 interface SessionItem {
   id: string;
@@ -90,102 +93,120 @@ export default function StudentDashboardPage() {
   }, [router]);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">
-            Welcome, {studentName || "Student"}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Student USN: <span className="font-semibold text-slate-700">{studentUsn || "N/A"}</span>
-          </p>
+    <div className="space-y-7">
+      {/* Welcome Banner Card */}
+      <GlowCard glowColor="peach" className="p-7">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-peach-600 bg-peach-100/70 px-3 py-1 rounded-full inline-block mb-1 border border-peach-200/50">
+              Student Workspace
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+              Welcome back, <span className="gradient-text-peach-cool">{studentName || "Student"}</span>
+            </h1>
+            <p className="text-xs text-slate-500 font-mono">
+              Academic Identifier (USN): <span className="font-bold text-slate-700">{studentUsn || "N/A"}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              Active Enrolled Account
+            </span>
+          </div>
         </div>
-        <div className="text-xs px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 self-start sm:self-auto">
-          Active Student Account
-        </div>
-      </div>
+      </GlowCard>
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-slate-800">
-            Assigned Reflection Sessions
+      {/* Session List Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <span>📚</span> Assigned Reflection Sessions
           </h2>
-          <span className="text-xs text-slate-500 font-medium">
-            {sessions.length} Total Sessions
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/80 border border-slate-200 text-slate-600 shadow-sm">
+            {sessions.length} Available Sessions
           </span>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-sm text-slate-500">
-            Loading your reflection sessions...
+          <div className="text-center py-16 text-sm text-slate-400">
+            <div className="w-8 h-8 border-2 border-peach-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            Loading reflection assessments...
           </div>
         ) : sessions.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border text-center text-sm text-slate-500">
-            No assessment sessions currently available.
-          </div>
+          <GlowCard className="p-12 text-center text-sm text-slate-500">
+            No reflection sessions currently assigned.
+          </GlowCard>
         ) : (
           <div className="grid gap-4">
-            {sessions.map((s) => {
+            {sessions.map((s, idx) => {
               const hasSubmitted = !!s.submission;
               const isAssessed = s.submission?.assessment?.status === "COMPLETED";
 
               return (
-                <div
+                <motion.div
                   key={s.id}
-                  className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition hover:border-slate-300"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
                 >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase ${
-                          s.status === "OPEN"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-600 border border-slate-200"
-                        }`}
-                      >
-                        {s.status}
-                      </span>
-                      {hasSubmitted && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
-                          Submitted
-                        </span>
-                      )}
-                      {isAssessed && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-medium">
-                          Evaluated
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-slate-900 text-base">
-                      {s.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-mono">
-                      Session ID: {s.id}
-                    </p>
-                  </div>
+                  <GlowCard glowColor={s.status === "OPEN" ? "peach" : "cool"} className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
+                              s.status === "OPEN"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}
+                          >
+                            {s.status}
+                          </span>
+                          {hasSubmitted && (
+                            <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                              ✓ Submitted
+                            </span>
+                          )}
+                          {isAssessed && (
+                            <span className="text-xs px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 font-semibold border border-purple-200">
+                              ★ Evaluated ({s.submission?.assessment?.final_approved_mark.toFixed(2)}/5.00)
+                            </span>
+                          )}
+                        </div>
 
-                  <div className="flex items-center gap-3">
-                    {hasSubmitted ? (
-                      <button
-                        onClick={() => router.push(`/student/results/${s.id}`)}
-                        className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
-                      >
-                        View Results
-                      </button>
-                    ) : s.status === "OPEN" ? (
-                      <button
-                        onClick={() => router.push(`/student/submit/${s.id}`)}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-sm"
-                      >
-                        Submit Reflection
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-400 font-medium px-3 py-2 bg-slate-50 rounded-xl border">
-                        Session Closed (Missing)
-                      </span>
-                    )}
-                  </div>
-                </div>
+                        <h3 className="font-bold text-slate-800 text-lg">
+                          {s.name}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-mono">
+                          ID: {s.id}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {hasSubmitted ? (
+                          <InteractiveButton
+                            variant="secondary"
+                            onClick={() => router.push(`/student/results/${s.id}`)}
+                          >
+                            View Result & Review →
+                          </InteractiveButton>
+                        ) : s.status === "OPEN" ? (
+                          <InteractiveButton
+                            variant="primary"
+                            onClick={() => router.push(`/student/submit/${s.id}`)}
+                          >
+                            Submit Reflection →
+                          </InteractiveButton>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-medium px-4 py-2.5 bg-slate-100/70 rounded-xl border">
+                            Session Concluded
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </GlowCard>
+                </motion.div>
               );
             })}
           </div>

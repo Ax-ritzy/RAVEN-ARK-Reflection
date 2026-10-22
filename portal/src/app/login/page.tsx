@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
+import InteractiveButton from "@/components/InteractiveButton";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -29,7 +31,6 @@ export default function UnifiedLoginPage() {
     }
 
     if (data.user) {
-      // Query profile role to dynamically route
       const { data: profile, error: profErr } = await supabase
         .from("profiles")
         .select("role, status, full_name, usn")
@@ -37,7 +38,7 @@ export default function UnifiedLoginPage() {
         .single();
 
       if (profErr || !profile) {
-        setErrorMsg("Authentication succeeded, but no linked student or faculty profile was found.");
+        setErrorMsg("Authenticated, but no linked student or faculty profile was found.");
         setLoading(false);
         return;
       }
@@ -49,7 +50,6 @@ export default function UnifiedLoginPage() {
         return;
       }
 
-      // Dynamic Role Routing:
       if (profile.role === "PROFESSOR") {
         router.push("/admin/dashboard");
       } else if (profile.role === "STUDENT") {
@@ -62,71 +62,96 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl mx-auto flex items-center justify-center text-white font-extrabold text-2xl shadow-sm">
-            R
+    <div className="min-h-[78vh] flex items-center justify-center px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="max-w-md w-full relative"
+      >
+        {/* Animated Radiant Gradient Aura */}
+        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-peach-400 via-rose-400 to-cool-400 opacity-50 blur-xl animate-gradient-shift -z-10" />
+
+        <div className="bg-white/85 backdrop-blur-2xl rounded-3xl border border-white/90 p-8 sm:p-10 shadow-2xl shadow-peach-500/10 space-y-7">
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <motion.div
+              whileHover={{ rotate: 180, scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+              className="w-14 h-14 bg-gradient-to-tr from-peach-500 via-rose-400 to-cool-400 rounded-2xl mx-auto flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-peach-500/30"
+            >
+              R
+            </motion.div>
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">
+                Institutional Assessment
+              </h1>
+              <p className="text-xs text-slate-500 mt-1">
+                Enter your credentials for dynamic role routing
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Reflection AI Assessment Portal
-          </h1>
-          <p className="text-xs text-slate-500">
-            Sign in with your institutional credentials to be routed automatically
-          </p>
+
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2"
+            >
+              <span>⚠️</span>
+              <span>{errorMsg}</span>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Institutional Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="professor@institution.edu or student1@institution.edu"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200/90 bg-white/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent transition-all shadow-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200/90 bg-white/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-peach-400 focus:border-transparent transition-all shadow-sm"
+              />
+            </div>
+
+            <InteractiveButton
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg"
+            >
+              {loading ? "Authenticating & Routing..." : "Sign In to System →"}
+            </InteractiveButton>
+          </form>
+
+          {/* Quick Info Badges */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-peach-50 text-peach-700 border border-peach-200/50">
+              🛡️ Faculty Route
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cool-50 text-cool-700 border border-cool-200/50">
+              🎓 Student Route
+            </span>
+          </div>
         </div>
-
-        {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-700 mb-1.5">
-              Email Address
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@institution.edu"
-              className="w-full px-3.5 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-700 mb-1.5">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition shadow-sm disabled:opacity-50"
-          >
-            {loading ? "Authenticating & Routing..." : "Sign In"}
-          </button>
-        </form>
-
-        <div className="pt-4 border-t text-center space-y-1 text-xs text-slate-500">
-          <div className="flex justify-center gap-4 text-[11px] font-medium text-slate-600">
-            <span>🛡️ Faculty $\rightarrow$ Admin Dashboard</span>
-            <span>🎓 Student $\rightarrow$ Submissions</span>
-          </div>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

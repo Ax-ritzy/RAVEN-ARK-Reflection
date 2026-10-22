@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
+import GlowCard from "@/components/GlowCard";
+import InteractiveButton from "@/components/InteractiveButton";
 
 export default function ReportsExportPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<any[]>([]);
+  const [studentCount, setStudentCount] = useState<number>(0);
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [exportingSession, setExportingSession] = useState(false);
   const [exportingMaster, setExportingMaster] = useState(false);
@@ -30,6 +34,12 @@ export default function ReportsExportPage() {
         setSessions(data);
         setSelectedSessionId(data[0].id);
       }
+
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "STUDENT");
+      setStudentCount(count || 0);
     }
     loadSessions();
   }, [router]);
@@ -179,89 +189,194 @@ export default function ReportsExportPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          Excel Academic Reports (.xlsx)
+    <div className="space-y-8">
+      {/* Page Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-peach-100/70 border border-peach-200 text-peach-900 mb-2">
+          <span className="w-2 h-2 rounded-full bg-peach-500 animate-pulse" />
+          Export & Institutional Reporting Engine
+        </div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          Excel Academic Reports <span className="text-transparent bg-clip-text bg-gradient-to-r from-peach-600 via-rose-500 to-cool-600">(.xlsx)</span>
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Export authoritative assessment snapshots, keyword statistics, and master grade sheets
+        <p className="text-sm text-slate-500 mt-1">
+          Export institutional-grade spreadsheets, session performance distributions, and course-wide master grade matrices.
         </p>
-      </div>
+      </motion.div>
 
+      {/* Status Alert */}
       {statusMessage && (
-        <div
-          className={`p-3.5 rounded-xl text-xs font-medium border ${
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-2xl text-xs font-semibold border flex items-center gap-3 ${
             statusMessage.startsWith("Error")
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              ? "bg-red-50/90 text-red-700 border-red-200"
+              : "bg-emerald-50/90 text-emerald-800 border-emerald-200 shadow-sm"
           }`}
         >
-          {statusMessage}
-        </div>
+          <span className="text-base">{statusMessage.startsWith("Error") ? "⚠️" : "✓"}</span>
+          <span>{statusMessage}</span>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="border-b pb-3">
-            <h2 className="text-base font-bold text-slate-900">
-              1. Session Assessment Sheet
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Detailed per-student breakdown for a single session: USN, name, final mark (/5), reference score (/15), selected reference ID, and submission status.
-            </p>
-          </div>
+      {/* Two Column Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Session Sheet Card */}
+        <motion.div
+          initial={{ opacity: 0, x: -15 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <GlowCard glowColor="cool" className="p-7 space-y-6 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-cool-100 border border-cool-200 flex items-center justify-center text-cool-600">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    1. Session Assessment Sheet
+                  </h2>
+                  <span className="text-xs text-cool-700 font-semibold">Single Session Breakdown</span>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Select Session
-            </label>
-            <select
-              value={selectedSessionId}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="w-full px-3 py-2 border rounded-xl text-xs bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Detailed per-student breakdown for a chosen session: USN, Student Name, Final Mark (/5.00), Reference Score (/15), Selected Reference Title, and Submission Status.
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  Select Target Session
+                </label>
+                <select
+                  value={selectedSessionId}
+                  onChange={(e) => setSelectedSessionId(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-cool-400 focus:border-cool-400 focus:outline-none transition"
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 text-[11px] text-slate-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>Formatting:</span>
+                  <span className="font-semibold text-slate-700">OpenPyXL Styled .xlsx</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Reference Multi-Selection:</span>
+                  <span className="font-semibold text-slate-700">Highest Cosine Match</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Audit Consistency:</span>
+                  <span className="font-semibold text-emerald-700">Live Overrides Included</span>
+                </div>
+              </div>
+            </div>
+
+            <InteractiveButton
+              onClick={handleExportSessionSheet}
+              disabled={exportingSession || !selectedSessionId}
+              variant="primary"
+              className="w-full mt-4"
+              icon={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              }
             >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.status})
-                </option>
-              ))}
-            </select>
-          </div>
+              {exportingSession ? "Generating XLSX..." : "Download Session Assessment Sheet (.xlsx)"}
+            </InteractiveButton>
+          </GlowCard>
+        </motion.div>
 
-          <button
-            onClick={handleExportSessionSheet}
-            disabled={exportingSession || !selectedSessionId}
-            className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition disabled:opacity-50 shadow-sm"
-          >
-            {exportingSession ? "Generating XLSX..." : "Download Session Assessment Sheet (.xlsx)"}
-          </button>
-        </div>
+        {/* Master Performance Sheet Card */}
+        <motion.div
+          initial={{ opacity: 0, x: 15 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <GlowCard glowColor="peach" className="p-7 space-y-6 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-peach-100 border border-peach-200 flex items-center justify-center text-peach-600">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    2. Master Performance Sheet
+                  </h2>
+                  <span className="text-xs text-peach-700 font-semibold">Course-Wide Cohort Matrix</span>
+                </div>
+              </div>
 
-        <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
-          <div className="border-b pb-3">
-            <h2 className="text-base font-bold text-slate-900">
-              2. Master Student Performance Sheet
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Course-wide matrix: Student names, USNs, and one column per session with final approved marks. Clearly distinguishes absent zeroes from assessed zeroes.
-            </p>
-          </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Course-wide matrix: Student names, USNs, and one column per session with final approved marks. Clearly distinguishes unsubmitted absent zeroes from assessed zeroes.
+              </p>
 
-          <div className="text-xs text-slate-600 bg-slate-50 p-3.5 rounded-xl border space-y-1">
-            <p><strong>Roster:</strong> All registered students in database</p>
-            <p><strong>Sessions Included:</strong> {sessions.length} sessions</p>
-            <p><strong>Audit Invariant:</strong> Reflects all approved professor overrides</p>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-peach-50/70 p-3 rounded-xl border border-peach-200/60 text-center">
+                  <span className="text-xl font-extrabold text-peach-900 font-mono block">
+                    {studentCount}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-peach-700 tracking-wider">
+                    Enrolled Students
+                  </span>
+                </div>
+                <div className="bg-cool-50/70 p-3 rounded-xl border border-cool-200/60 text-center">
+                  <span className="text-xl font-extrabold text-cool-900 font-mono block">
+                    {sessions.length}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-cool-700 tracking-wider">
+                    Total Sessions
+                  </span>
+                </div>
+              </div>
 
-          <button
-            onClick={handleExportMasterSheet}
-            disabled={exportingMaster || sessions.length === 0}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition disabled:opacity-50 shadow-sm"
-          >
-            {exportingMaster ? "Generating XLSX..." : "Download Master Performance Sheet (.xlsx)"}
-          </button>
-        </div>
+              <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 text-[11px] text-slate-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>Absence Distinction:</span>
+                  <span className="font-semibold text-slate-700">"ABSENT" Tagged Explicitly</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cross-Session Aggregation:</span>
+                  <span className="font-semibold text-slate-700">Automatic Row Totals</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Professor Audit Sync:</span>
+                  <span className="font-semibold text-emerald-700">Fully Synchronized</span>
+                </div>
+              </div>
+            </div>
+
+            <InteractiveButton
+              onClick={handleExportMasterSheet}
+              disabled={exportingMaster || sessions.length === 0}
+              variant="secondary"
+              className="w-full mt-4"
+              icon={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            >
+              {exportingMaster ? "Generating Master Matrix..." : "Download Master Performance Sheet (.xlsx)"}
+            </InteractiveButton>
+          </GlowCard>
+        </motion.div>
       </div>
     </div>
   );

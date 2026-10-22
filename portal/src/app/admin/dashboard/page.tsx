@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
+import GlowCard from "@/components/GlowCard";
+import InteractiveButton from "@/components/InteractiveButton";
 
 interface DashboardMetrics {
   totalStudents: number;
@@ -116,92 +119,98 @@ export default function ProfessorDashboardPage() {
   }, [router]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Faculty Administrative Overview
+          <span className="text-xs uppercase font-extrabold tracking-wider text-peach-600 bg-peach-100/70 px-3 py-1 rounded-full inline-block mb-1 border border-peach-200/50">
+            Administrative Control Panel
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+            Institutional Telemetry
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Real-time reflection assessment telemetry and system status
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time reflection assessment metrics and status monitoring
           </p>
         </div>
         <div className="flex gap-2">
-          <a
-            href="/admin/sessions"
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
+          <InteractiveButton
+            variant="secondary"
+            onClick={() => router.push("/admin/sessions")}
           >
             Manage Sessions
-          </a>
-          <a
-            href="/admin/students"
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition shadow-sm"
+          </InteractiveButton>
+          <InteractiveButton
+            variant="primary"
+            onClick={() => router.push("/admin/students")}
           >
-            Provision Students
-          </a>
+            + Provision Student
+          </InteractiveButton>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-sm text-slate-500">
+        <div className="text-center py-20 text-slate-400 text-sm">
+          <div className="w-8 h-8 border-2 border-peach-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           Aggregating authoritative database records...
         </div>
       ) : (
         <>
+          {/* Top Metric Tiles */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <span className="text-xs font-semibold uppercase text-slate-400">Total Enrolled</span>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{metrics.totalStudents}</p>
-              <span className="text-xs text-slate-500 mt-1 block">Active Student Profiles</span>
-            </div>
+            <GlowCard glowColor="peach" className="p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Enrolled</span>
+              <p className="text-4xl font-black text-slate-800 mt-2">{metrics.totalStudents}</p>
+              <span className="text-xs text-slate-500 mt-1 block">Active Profiles</span>
+            </GlowCard>
 
-            <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <span className="text-xs font-semibold uppercase text-slate-400">Sessions</span>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{metrics.totalSessions}</p>
-              <span className="text-xs text-emerald-600 mt-1 block font-medium">
+            <GlowCard glowColor="cool" className="p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Sessions</span>
+              <p className="text-4xl font-black text-slate-800 mt-2">{metrics.totalSessions}</p>
+              <span className="text-xs text-emerald-600 mt-1 block font-bold">
                 {metrics.openSessions} Open · {metrics.closedSessions} Closed
               </span>
-            </div>
+            </GlowCard>
 
-            <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <span className="text-xs font-semibold uppercase text-slate-400">Submissions</span>
-              <p className="text-3xl font-extrabold text-indigo-600 mt-2">{metrics.totalSubmissions}</p>
-              <span className="text-xs text-slate-500 mt-1 block">Total Reflections Recorded</span>
-            </div>
+            <GlowCard glowColor="lavender" className="p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Submissions</span>
+              <p className="text-4xl font-black text-cool-500 mt-2">{metrics.totalSubmissions}</p>
+              <span className="text-xs text-slate-500 mt-1 block">Total Submissions</span>
+            </GlowCard>
 
-            <div className="bg-white p-5 rounded-2xl border shadow-sm">
-              <span className="text-xs font-semibold uppercase text-slate-400">Average Mark</span>
-              <p className="text-3xl font-extrabold text-emerald-600 mt-2">{metrics.averageMark.toFixed(2)}</p>
-              <span className="text-xs text-slate-500 mt-1 block">Out of 5.00 Maximum</span>
-            </div>
+            <GlowCard glowColor="peach" className="p-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Average Mark</span>
+              <p className="text-4xl font-black gradient-text-peach-cool mt-2">{metrics.averageMark.toFixed(2)}</p>
+              <span className="text-xs text-slate-500 mt-1 block font-mono">Out of 5.00 Max</span>
+            </GlowCard>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border shadow-sm">
-            <h2 className="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-4">
-              Assessment Processing Breakdown
+          {/* Assessment Health Breakdown */}
+          <GlowCard className="p-7">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">
+              Real-Time Processing Breakdown
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                <span className="text-xs font-medium text-emerald-800">Evaluated & Completed</span>
-                <p className="text-2xl font-bold text-emerald-700 mt-1">{metrics.completedAssessments}</p>
+              <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200/60 shadow-sm">
+                <span className="text-xs font-bold text-emerald-800">Evaluated & Completed</span>
+                <p className="text-3xl font-black text-emerald-700 mt-1">{metrics.completedAssessments}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
-                <span className="text-xs font-medium text-amber-800">Needs Review (Low Sim / USN)</span>
-                <p className="text-2xl font-bold text-amber-700 mt-1">{metrics.needsReviewAssessments}</p>
+              <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/60 shadow-sm">
+                <span className="text-xs font-bold text-amber-800">Needs Review (Similarity / USN)</span>
+                <p className="text-3xl font-black text-amber-700 mt-1">{metrics.needsReviewAssessments}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
-                <span className="text-xs font-medium text-blue-800">Pending Evaluation</span>
-                <p className="text-2xl font-bold text-blue-700 mt-1">{metrics.pendingAssessments}</p>
+              <div className="p-5 rounded-2xl bg-blue-50/70 border border-blue-200/60 shadow-sm">
+                <span className="text-xs font-bold text-blue-800">Pending Evaluation</span>
+                <p className="text-3xl font-black text-blue-700 mt-1">{metrics.pendingAssessments}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-rose-50 border border-rose-100">
-                <span className="text-xs font-medium text-rose-800">Evaluation Failed</span>
-                <p className="text-2xl font-bold text-rose-700 mt-1">{metrics.failedAssessments}</p>
+              <div className="p-5 rounded-2xl bg-rose-50/70 border border-rose-200/60 shadow-sm">
+                <span className="text-xs font-bold text-rose-800">Evaluation Failed</span>
+                <p className="text-3xl font-black text-rose-700 mt-1">{metrics.failedAssessments}</p>
               </div>
             </div>
-          </div>
+          </GlowCard>
         </>
       )}
     </div>

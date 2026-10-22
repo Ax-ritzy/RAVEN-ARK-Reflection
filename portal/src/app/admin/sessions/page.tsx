@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
+import GlowCard from "@/components/GlowCard";
+import InteractiveButton from "@/components/InteractiveButton";
 
 interface SessionDetail {
   id: string;
@@ -153,167 +156,176 @@ export default function SessionManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Session Lifecycle & Reference Assignment
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+            Session Lifecycle & Assignment
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Create, open, close, and link reference materials to reflection sessions
+            Open, close, and link multi-reference benchmarks to reflection sessions
           </p>
         </div>
-        <button
+        <InteractiveButton
+          variant="primary"
           onClick={() => setShowModal(true)}
-          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shadow-sm"
         >
           + Create New Session
-        </button>
+        </InteractiveButton>
       </div>
 
       <div className="grid gap-4">
         {loading ? (
-          <div className="text-center py-12 text-xs text-slate-500">Loading sessions...</div>
+          <div className="text-center py-16 text-xs text-slate-400">Loading sessions...</div>
         ) : sessions.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border text-center text-xs text-slate-500">
+          <GlowCard className="p-12 text-center text-xs text-slate-500">
             No reflection sessions created yet. Click "+ Create New Session" to begin.
-          </div>
+          </GlowCard>
         ) : (
           sessions.map((s) => (
-            <div
-              key={s.id}
-              className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase ${
+            <GlowCard key={s.id} glowColor={s.status === "OPEN" ? "peach" : "cool"} className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
+                        s.status === "OPEN"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-100 text-slate-600 border border-slate-200"
+                      }`}
+                    >
+                      {s.status}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">
+                      Created: {new Date(s.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-slate-800 text-lg">{s.name}</h3>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span>Submissions: <strong className="text-slate-800">{s.submissions_count}</strong></span>
+                    <span>·</span>
+                    <span>
+                      Assigned References:{" "}
+                      {s.assigned_references.length > 0 ? (
+                        <span className="font-semibold text-slate-700">
+                          {s.assigned_references.join(", ")}
+                        </span>
+                      ) : (
+                        <span className="italic text-amber-600">None assigned</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => toggleSessionStatus(s.id, s.status)}
+                    className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition shadow-sm ${
                       s.status === "OPEN"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-100 text-slate-600 border border-slate-200"
+                        ? "border-rose-300 text-rose-700 hover:bg-rose-50"
+                        : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                     }`}
                   >
-                    {s.status}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Created: {new Date(s.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-slate-900 text-base">{s.name}</h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span>Submissions: <strong className="text-slate-800">{s.submissions_count}</strong></span>
-                  <span>·</span>
-                  <span>
-                    Assigned References:{" "}
-                    {s.assigned_references.length > 0 ? (
-                      <span className="font-medium text-slate-700">
-                        {s.assigned_references.join(", ")}
-                      </span>
-                    ) : (
-                      <span className="italic text-amber-600">None assigned</span>
-                    )}
-                  </span>
+                    {s.status === "OPEN" ? "Close Session" : "Re-Open Session"}
+                  </motion.button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleSessionStatus(s.id, s.status)}
-                  className={`text-xs font-semibold px-4 py-2 rounded-xl border transition ${
-                    s.status === "OPEN"
-                      ? "border-rose-300 text-rose-700 hover:bg-rose-50"
-                      : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  }`}
-                >
-                  {s.status === "OPEN" ? "Close Session" : "Re-Open Session"}
-                </button>
-              </div>
-            </div>
+            </GlowCard>
           ))
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border max-w-md w-full p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-base font-bold text-slate-900">Create New Reflection Session</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg leading-none"
-              >
-                &times;
-              </button>
-            </div>
-
-            {modalError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
-                {modalError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateSession} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Session Title / Topic Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newSessionName}
-                  onChange={(e) => setNewSessionName(e.target.value)}
-                  placeholder="e.g. Session 2: Attention & Transformers"
-                  className="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Assign Reference Materials (Select all that apply)
-                </label>
-                {availableReferences.length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                    No reference materials in library. Add them under the References tab.
-                  </p>
-                ) : (
-                  <div className="max-h-36 overflow-y-auto space-y-1.5 border p-2.5 rounded-xl bg-slate-50">
-                    {availableReferences.map((ref) => (
-                      <label key={ref.id} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedRefIds.includes(ref.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedRefIds([...selectedRefIds, ref.id]);
-                            } else {
-                              setSelectedRefIds(selectedRefIds.filter((id) => id !== ref.id));
-                            }
-                          }}
-                        />
-                        <span>{ref.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 15 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/90 max-w-md w-full p-7 space-y-4"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-base font-extrabold text-slate-800">Create Reflection Session</h2>
                 <button
-                  type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-3.5 py-2 rounded-xl border text-xs text-slate-600 hover:bg-slate-50 transition"
+                  className="text-slate-400 hover:text-slate-600 text-xl leading-none"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !newSessionName.trim()}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition disabled:opacity-50"
-                >
-                  {saving ? "Creating..." : "Create Session"}
+                  &times;
                 </button>
               </div>
-            </form>
+
+              {modalError && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  ⚠️ {modalError}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateSession} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Session Title / Topic Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    placeholder="e.g. Session 3: Transformer Attention & Encoders"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-peach-400 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Assign Reference Materials
+                  </label>
+                  {availableReferences.length === 0 ? (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                      No reference materials found in library.
+                    </p>
+                  ) : (
+                    <div className="max-h-36 overflow-y-auto space-y-1.5 border border-slate-200/80 p-2.5 rounded-xl bg-slate-50/70">
+                      {availableReferences.map((ref) => (
+                        <label key={ref.id} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedRefIds.includes(ref.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRefIds([...selectedRefIds, ref.id]);
+                              } else {
+                                setSelectedRefIds(selectedRefIds.filter((id) => id !== ref.id));
+                              }
+                            }}
+                          />
+                          <span>{ref.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 rounded-xl border text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <InteractiveButton
+                    type="submit"
+                    disabled={saving || !newSessionName.trim()}
+                    className="px-4 py-2"
+                  >
+                    {saving ? "Creating..." : "Create Session"}
+                  </InteractiveButton>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
+import GlowCard from "@/components/GlowCard";
+import InteractiveButton from "@/components/InteractiveButton";
 
 export default function SubmitReflectionPage() {
   const params = useParams();
@@ -132,13 +135,9 @@ export default function SubmitReflectionPage() {
 
         const fileExt = file.name.split(".").pop();
         storagePath = `${studentProfile.id}/${sessionId}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
+        await supabase.storage
           .from("student-submissions")
           .upload(storagePath, file, { upsert: true });
-
-        if (uploadError) {
-          console.warn("Storage upload warning:", uploadError.message);
-        }
       }
 
       if (finalBody.length === 0) {
@@ -149,7 +148,7 @@ export default function SubmitReflectionPage() {
         throw new Error(`Reflection exceeds the 500-character limit (${finalBody.length} characters).`);
       }
 
-      const { data: newSub, error: subError } = await supabase
+      const { error: subError } = await supabase
         .from("submissions")
         .insert({
           session_id: sessionId,
@@ -158,9 +157,7 @@ export default function SubmitReflectionPage() {
           extracted_text: finalBody,
           char_count: finalBody.length,
           status: "SUBMITTED",
-        })
-        .select("id")
-        .single();
+        });
 
       if (subError) {
         if (subError.code === "23505") {
@@ -177,82 +174,117 @@ export default function SubmitReflectionPage() {
   };
 
   const currentChars = reflectionText.length;
+  const progressPercent = Math.min((currentChars / MAX_CHARS) * 100, 100);
   const isOverLimit = currentChars > MAX_CHARS;
 
   if (loading) {
-    return <div className="text-center py-12 text-sm text-slate-500">Checking eligibility...</div>;
+    return (
+      <div className="text-center py-20 text-slate-400 text-sm">
+        <div className="w-8 h-8 border-2 border-peach-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        Verifying student eligibility...
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl border shadow-sm p-6 sm:p-8">
-      <div className="mb-6">
-        <a href="/student/dashboard" className="text-xs text-blue-600 hover:underline">
-          &larr; Back to Sessions
-        </a>
-        <h1 className="text-xl font-bold text-slate-900 mt-2">
-          Submit Reflection
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Session: <span className="font-semibold text-slate-700">{sessionName}</span>
-        </p>
-      </div>
-
-      {errorMsg && (
-        <div className="p-3.5 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
-          {errorMsg}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-xs font-semibold uppercase text-slate-700 mb-2">
-            Upload Document (TXT, DOCX, or PDF)
-          </label>
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer">
-            <input
-              type="file"
-              accept=".txt,.docx,.pdf"
-              onChange={handleFileChange}
-              className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            <p className="text-xs text-slate-400 mt-2">
-              Body text will be safely extracted and validated against the 500-character maximum.
-            </p>
-          </div>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <GlowCard glowColor="peach" className="p-8">
+        <div className="mb-6 space-y-2">
+          <a
+            href="/student/dashboard"
+            className="text-xs font-semibold text-peach-600 hover:text-peach-700 transition inline-flex items-center gap-1"
+          >
+            &larr; Back to Sessions
+          </a>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+            Submit Reflection
+          </h1>
+          <p className="text-xs text-slate-500">
+            Session: <span className="font-bold text-slate-700">{sessionName}</span>
+          </p>
         </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-xs font-semibold uppercase text-slate-700">
-              Or Type Reflection Directly
+        {errorMsg && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 mb-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+          >
+            ⚠️ {errorMsg}
+          </motion.div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* File Upload Drop Area */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+              Upload Document (TXT, DOCX, or PDF)
             </label>
-            <span
-              className={`text-xs font-medium ${
-                isOverLimit ? "text-red-600 font-bold" : "text-slate-500"
-              }`}
-            >
-              {currentChars} / {MAX_CHARS} characters
-            </span>
+            <div className="border-2 border-dashed border-peach-200 hover:border-peach-400 rounded-2xl p-6 text-center transition-all bg-peach-50/30 hover:bg-peach-50/60 cursor-pointer group">
+              <input
+                type="file"
+                accept=".txt,.docx,.pdf"
+                onChange={handleFileChange}
+                className="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
+              />
+              <p className="text-[11px] text-slate-400 mt-2">
+                Text is safely extracted and strictly checked against the 500-character maximum.
+              </p>
+            </div>
           </div>
-          <textarea
-            rows={6}
-            value={reflectionText}
-            onChange={(e) => setReflectionText(e.target.value)}
-            placeholder="Write your core reflection here (max 500 characters)..."
-            className={`w-full p-3.5 border rounded-xl text-sm focus:outline-none focus:ring-2 ${
-              isOverLimit ? "border-red-400 focus:ring-red-400" : "focus:ring-blue-500"
-            }`}
-          />
-        </div>
 
-        <button
-          type="submit"
-          disabled={submitting || isOverLimit || (!file && !reflectionText.trim())}
-          className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition shadow-sm disabled:opacity-50"
-        >
-          {submitting ? "Processing Submission..." : "Submit Reflection for Evaluation"}
-        </button>
-      </form>
+          {/* Text Area */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <label className="uppercase tracking-wider text-slate-600">
+                Or Type Reflection Directly
+              </label>
+              <span
+                className={`font-mono px-2.5 py-0.5 rounded-full ${
+                  isOverLimit
+                    ? "bg-rose-100 text-rose-700 font-extrabold"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {currentChars} / {MAX_CHARS}
+              </span>
+            </div>
+
+            {/* Visual Character Progress Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <motion.div
+                className={`h-full ${
+                  isOverLimit
+                    ? "bg-rose-500"
+                    : "bg-gradient-to-r from-peach-400 via-rose-400 to-cool-400"
+                }`}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.2 }}
+              />
+            </div>
+
+            <textarea
+              rows={6}
+              value={reflectionText}
+              onChange={(e) => setReflectionText(e.target.value)}
+              placeholder="Synthesize the core concepts covered in today's reflection (maximum 500 characters)..."
+              className={`w-full p-4 rounded-2xl border text-sm font-sans focus:outline-none transition-all shadow-sm ${
+                isOverLimit
+                  ? "border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/20"
+                  : "border-slate-200 focus:ring-2 focus:ring-peach-400 bg-white/80"
+              }`}
+            />
+          </div>
+
+          <InteractiveButton
+            type="submit"
+            disabled={submitting || isOverLimit || (!file && !reflectionText.trim())}
+            className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg"
+          >
+            {submitting ? "Processing & Evaluating..." : "Submit Reflection for Evaluation →"}
+          </InteractiveButton>
+        </form>
+      </GlowCard>
     </div>
   );
 }
