@@ -14,6 +14,7 @@ env/
 out/
 build/
 dist/
+*.tsbuildinfo
 
 # Logs & Debugging
 npm-debug.log*
