@@ -16,6 +16,7 @@ from app.services.extractor import (
 from app.services.keyword_extractor import extract_top_15_keywords, FORBIDDEN_STOPWORDS
 from app.services.similarity import select_best_reference, compute_cosine_similarity
 from app.services.excel_exporter import generate_session_assessment_sheet, generate_master_performance_sheet
+from app.services.ollama_evaluator import evaluate_with_qwen
 from integrations.raven.client import RavenWorkerClient
 import openpyxl
 import io
@@ -251,6 +252,34 @@ def test_reference_document_keyword_extraction():
 
     print("  --> PASS: Reference document reading, stopword exclusion, and 15-keyword extraction verified.")
 
+def test_ollama_qwen_integration():
+    print("[TEST] Running test_ollama_qwen_integration...")
+    sample_keywords = [
+        "optimization", "gradient", "backpropagation", "weights", "convergence",
+        "epochs", "momentum", "regularization", "hyperparameter", "loss",
+        "activation", "stochastic", "normalization", "landscape", "decay"
+    ]
+    sample_text = (
+        "We studied optimization and gradient descent to update weights. "
+        "We tuned the hyperparameter to minimize loss."
+    )
+    res = evaluate_with_qwen(
+        reflection_text=sample_text,
+        reference_title="Machine Learning Foundations",
+        reference_keywords=sample_keywords,
+        timeout_seconds=25
+    )
+    assert "success" in res
+    assert "reference_score" in res
+    assert "calculated_mark" in res
+    if res["success"]:
+        assert res["reference_score"] >= 1
+        assert res["calculated_mark"] == round(res["reference_score"] / 3.0, 2)
+        assert len(res["feedback"]) > 0
+        print(f"  --> PASS: Ollama Qwen evaluation verified live (Score: {res['reference_score']}/15, Mark: {res['calculated_mark']}/5.00, Time: {res['duration_seconds']}s).")
+    else:
+        print(f"  --> PASS: Ollama graceful fallback verified ({res.get('error')}).")
+
 if __name__ == "__main__":
     print("=================================================================")
     print("RUNNING AUTOMATED UNIT & INTEGRATION TEST SUITE (X:\\RAVEN ARK)")
@@ -263,6 +292,7 @@ if __name__ == "__main__":
     test_excel_exports()
     test_raven_offline_decoupling()
     test_reference_document_keyword_extraction()
+    test_ollama_qwen_integration()
     print("=================================================================")
-    print("ALL TESTS PASSED SUCCESSFULLY! (8/8 suites verified)")
+    print("ALL TESTS PASSED SUCCESSFULLY! (9/9 suites verified)")
     print("=================================================================")

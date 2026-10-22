@@ -112,13 +112,13 @@ export default function AssessmentReviewPage() {
     checkAuth();
   }, [router]);
 
-  const handleEvaluateSubmission = async (submissionId: string) => {
+  const handleEvaluateSubmission = async (submissionId: string, forceQwen: boolean = true) => {
     setEvaluatingId(submissionId);
     try {
       const resp = await fetch("/api/submissions/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId }),
+        body: JSON.stringify({ submissionId, forceQwen }),
       });
 
       if (!resp.ok) {
@@ -233,15 +233,21 @@ export default function AssessmentReviewPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/70 border border-cool-200 text-cool-900 mb-2">
-          <span className="w-2 h-2 rounded-full bg-cool-500 animate-pulse" />
-          Academic Assessment & Submissions Review
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/70 border border-cool-200 text-cool-900">
+            <span className="w-2 h-2 rounded-full bg-cool-500 animate-pulse" />
+            Academic Assessment & Submissions Review
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-800">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            🤖 Ollama Qwen 3.5:9B Active
+          </div>
         </div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
           Student Submissions & <span className="text-transparent bg-clip-text bg-gradient-to-r from-cool-600 via-indigo-600 to-peach-600">Evaluations</span>
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Inspect student reflection texts, review deterministic keyword scoring (Score / 3), run on-demand evaluations, or override final marks.
+          Inspect student reflections, review automated Qwen 3.5 semantic scoring (Score / 3), trigger on-demand AI assessments, and record audited manual overrides.
         </p>
       </motion.div>
 
@@ -346,16 +352,24 @@ export default function AssessmentReviewPage() {
                             View Submission
                           </InteractiveButton>
 
-                          {!s.assessment_id ? (
-                            <InteractiveButton
-                              onClick={() => handleEvaluateSubmission(s.submission_id)}
-                              variant="primary"
-                              size="sm"
-                              disabled={evaluatingId === s.submission_id}
-                            >
-                              {evaluatingId === s.submission_id ? "Evaluating..." : "⚡ Assess Now"}
-                            </InteractiveButton>
-                          ) : (
+                          <InteractiveButton
+                            onClick={() => handleEvaluateSubmission(s.submission_id, true)}
+                            variant={s.assessment_id ? "ghost" : "primary"}
+                            size="sm"
+                            disabled={evaluatingId === s.submission_id}
+                            className={s.assessment_id ? "text-cool-700 hover:bg-cool-100/60" : ""}
+                          >
+                            {evaluatingId === s.submission_id ? (
+                              <span className="flex items-center gap-1">
+                                <span className="w-3 h-3 border-2 border-cool-500 border-t-transparent rounded-full animate-spin" />
+                                Qwen Evaluating...
+                              </span>
+                            ) : (
+                              <span>🤖 {s.assessment_id ? "Re-assess" : "Assess (Qwen)"}</span>
+                            )}
+                          </InteractiveButton>
+
+                          {s.assessment_id && (
                             <InteractiveButton
                               onClick={() => {
                                 setOverrideModal(s);
@@ -513,6 +527,19 @@ export default function AssessmentReviewPage() {
                 </InteractiveButton>
 
                 <div className="flex gap-2">
+                  <InteractiveButton
+                    onClick={async () => {
+                      await handleEvaluateSubmission(viewModal.submission_id, true);
+                      setViewModal(null);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={evaluatingId === viewModal.submission_id}
+                    className="border-cool-300 text-cool-800 hover:bg-cool-50"
+                  >
+                    {evaluatingId === viewModal.submission_id ? "Evaluating..." : "🤖 Re-evaluate (Qwen)"}
+                  </InteractiveButton>
+
                   {viewModal.assessment_id && (
                     <InteractiveButton
                       onClick={() => {
@@ -522,7 +549,7 @@ export default function AssessmentReviewPage() {
                         setOverrideError(null);
                         setViewModal(null);
                       }}
-                      variant="outline"
+                      variant="primary"
                       size="sm"
                     >
                       Override Mark

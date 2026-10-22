@@ -21,4 +21,10 @@ class Settings:
         self.raven_worker_url: str = os.getenv("RAVEN_WORKER_URL", "http://127.0.0.1:8010")
         self.raven_timeout_seconds: int = int(os.getenv("RAVEN_TIMEOUT_SECONDS", "15"))
 
+        # Ollama Qwen Integration
+        self.ollama_url: str = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+        self.ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+        self.ollama_enabled: bool = os.getenv("OLLAMA_ENABLED", "true").lower() == "true"
+        self.ollama_timeout_seconds: int = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30"))
+
 settings = Settings()

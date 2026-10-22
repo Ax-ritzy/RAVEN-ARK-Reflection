@@ -20,6 +20,7 @@ from app.services.extractor import (
 from app.services.keyword_extractor import extract_top_15_keywords
 from app.services.similarity import select_best_reference
 from app.services.scorer import calculate_deterministic_score, ScoringError
+from app.services.ollama_evaluator import evaluate_with_qwen
 from app.services.excel_exporter import generate_session_assessment_sheet, generate_master_performance_sheet
 from integrations.raven.client import RavenWorkerClient
 from integrations.raven.schemas import RavenAssessmentRequest
@@ -51,8 +52,9 @@ class AssessResponse(BaseModel):
     calculated_mark: float
     status: str # COMPLETED, NEEDS_REVIEW, FAILED
     qualifies: bool
-    evaluation_source: str # "native_engine" or "raven_worker"
+    evaluation_source: str # "native_engine", "raven_worker", or "ollama_qwen3.5:9b"
     all_similarity_scores: Dict[str, float]
+    feedback: Optional[str] = None
 
 class SessionReportRequest(BaseModel):
     session_id: str
@@ -208,7 +210,29 @@ async def assess_submission(payload: AssessRequest):
     if not chosen_ref:
         raise HTTPException(status_code=500, detail="Selected reference metadata not found.")
 
-    # 3. Deterministic scoring
+    # 3. Assessment evaluation (Qwen 3.5:9B AI or Deterministic fallback)
+    if settings.ollama_enabled:
+        qwen_res = evaluate_with_qwen(
+            reflection_text=payload.reflection_text,
+            reference_title=chosen_ref.name,
+            reference_keywords=chosen_ref.keywords
+        )
+        if qwen_res.get("success"):
+            return AssessResponse(
+                submission_id=payload.submission_id,
+                selected_reference_id=selection.selected_reference_id,
+                similarity_score=selection.similarity_score,
+                matched_keywords=qwen_res["matched_keywords"],
+                reference_score=qwen_res["reference_score"],
+                calculated_mark=qwen_res["calculated_mark"],
+                status="COMPLETED",
+                qualifies=True,
+                evaluation_source=qwen_res["source"],
+                all_similarity_scores=selection.all_scores,
+                feedback=qwen_res.get("feedback")
+            )
+
+    # Deterministic fallback engine
     try:
         score_res = calculate_deterministic_score(
             reflection_text=payload.reflection_text,
@@ -227,7 +251,71 @@ async def assess_submission(payload: AssessRequest):
         status="COMPLETED",
         qualifies=True,
         evaluation_source="native_engine",
-        all_similarity_scores=selection.all_scores
+        all_similarity_scores=selection.all_scores,
+        feedback="Deterministic keyword evaluation completed."
+    )
+
+@router.post("/api/assess/qwen", response_model=AssessResponse)
+async def assess_submission_with_qwen(payload: AssessRequest):
+    """
+    Dedicated endpoint to force Ollama Qwen 3.5:9B semantic assessment for a submission.
+    """
+    threshold = payload.min_similarity_threshold or 0.0
+    raw_refs = [
+        {"id": r.id, "extracted_text": r.extracted_text}
+        for r in payload.candidate_references
+    ]
+    selection = select_best_reference(
+        reflection_text=payload.reflection_text,
+        candidate_references=raw_refs,
+        min_threshold=threshold
+    )
+
+    chosen_ref = next(
+        (r for r in payload.candidate_references if r.id == selection.selected_reference_id),
+        payload.candidate_references[0] if payload.candidate_references else None
+    )
+    if not chosen_ref:
+        raise HTTPException(status_code=400, detail="No candidate reference material provided.")
+
+    qwen_res = evaluate_with_qwen(
+        reflection_text=payload.reflection_text,
+        reference_title=chosen_ref.name,
+        reference_keywords=chosen_ref.keywords
+    )
+
+    if not qwen_res.get("success"):
+        # Fallback to deterministic
+        score_res = calculate_deterministic_score(
+            reflection_text=payload.reflection_text,
+            reference_keywords=chosen_ref.keywords
+        )
+        return AssessResponse(
+            submission_id=payload.submission_id,
+            selected_reference_id=chosen_ref.id,
+            similarity_score=selection.similarity_score or 0.85,
+            matched_keywords=score_res["matched_keywords"],
+            reference_score=score_res["reference_score"],
+            calculated_mark=score_res["calculated_mark"],
+            status="COMPLETED",
+            qualifies=True,
+            evaluation_source="native_engine_fallback",
+            all_similarity_scores=selection.all_scores,
+            feedback="Qwen unavailable; deterministic evaluation completed."
+        )
+
+    return AssessResponse(
+        submission_id=payload.submission_id,
+        selected_reference_id=chosen_ref.id,
+        similarity_score=selection.similarity_score or 0.85,
+        matched_keywords=qwen_res["matched_keywords"],
+        reference_score=qwen_res["reference_score"],
+        calculated_mark=qwen_res["calculated_mark"],
+        status="COMPLETED",
+        qualifies=True,
+        evaluation_source=qwen_res["source"],
+        all_similarity_scores=selection.all_scores,
+        feedback=qwen_res.get("feedback")
     )
 
 @router.post("/api/reports/session-excel")
