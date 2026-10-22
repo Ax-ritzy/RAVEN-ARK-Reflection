@@ -1,4 +1,11 @@
 import os
+import sys
+
+# Ensure root directory is in sys.path
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response, Depends
 from pydantic import BaseModel, Field
