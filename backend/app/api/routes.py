@@ -177,9 +177,14 @@ async def assess_submission(payload: AssessRequest):
             )
 
     # Native Deterministic Engine Execution
-    # 1. Multi-reference similarity selection
+    # 1. Multi-reference selection by highest keyword count
     raw_refs = [
-        {"id": r.id, "extracted_text": r.extracted_text}
+        {
+            "id": r.id,
+            "name": r.name,
+            "extracted_text": r.extracted_text,
+            "keywords": r.keywords
+        }
         for r in payload.candidate_references
     ]
     selection = select_best_reference(
@@ -262,7 +267,12 @@ async def assess_submission_with_qwen(payload: AssessRequest):
     """
     threshold = payload.min_similarity_threshold or 0.0
     raw_refs = [
-        {"id": r.id, "extracted_text": r.extracted_text}
+        {
+            "id": r.id,
+            "name": r.name,
+            "extracted_text": r.extracted_text,
+            "keywords": r.keywords
+        }
         for r in payload.candidate_references
     ]
     selection = select_best_reference(

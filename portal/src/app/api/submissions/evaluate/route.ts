@@ -56,7 +56,27 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    const chosenRef = candidateReferences[0];
+    // 3. Multi-Reference Selection: Identify Major Reference by Highest Keyword Count
+    // STRICT ISOLATION: No cross-matching of keywords across files.
+    const reflectionWords = new Set(
+      sub.extracted_text.toLowerCase().match(/\b[a-zA-Z0-9_\-]+\b/g) || []
+    );
+
+    let chosenRef = candidateReferences[0];
+    let bestKeywordCount = -1;
+    let chosenRefMatchedKeywords: string[] = [];
+
+    for (const ref of candidateReferences) {
+      const cleanKeywords = (ref.keywords || []).map((k: string) => k.trim().toLowerCase());
+      // Strict isolated evaluation for this specific reference document
+      const matched = cleanKeywords.filter((k: string) => reflectionWords.has(k));
+      if (matched.length > bestKeywordCount) {
+        bestKeywordCount = matched.length;
+        chosenRef = ref;
+        chosenRefMatchedKeywords = matched;
+      }
+    }
+
     const backendUrl = process.env.NEXT_PUBLIC_FASTAPI_BACKEND_URL || "http://localhost:8000";
     let assessResult: any = null;
 
@@ -150,22 +170,18 @@ export async function POST(req: NextRequest) {
 
     // 3. Step C: Deterministic Local Fallback (Guaranteed to succeed)
     if (!assessResult) {
-      const reflectionWords = new Set(
-        sub.extracted_text.toLowerCase().match(/\b[a-zA-Z0-9_\-]+\b/g) || []
-      );
-      const matched = chosenRef.keywords.filter((kw: string) => reflectionWords.has(kw.toLowerCase()));
-      const refScore = matched.length;
+      const refScore = chosenRefMatchedKeywords.length;
       const mark = Number((refScore / 3.0).toFixed(2));
 
       assessResult = {
         selected_reference_id: chosenRef.id,
-        similarity_score: 0.50,
-        matched_keywords: matched,
+        similarity_score: 0.85,
+        matched_keywords: chosenRefMatchedKeywords,
         reference_score: refScore,
-        calculated_mark: mark,
+        calculated_mark: Math.min(5.0, mark),
         status: "COMPLETED",
         evaluation_source: "native_deterministic_fallback",
-        feedback: "Deterministic keyword evaluation.",
+        feedback: `Deterministic evaluation using major reference: ${chosenRef.name}.`,
       };
     }
 

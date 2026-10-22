@@ -155,6 +155,45 @@ def test_multi_reference_similarity_selection():
     res_irr = select_best_reference(reflection_irrelevant, [ref_ml, ref_db], min_threshold=0.35)
     assert res_irr.qualifies is False, "Should not qualify when below threshold"
 
+    # User Specified Multi-Document Selection Rule:
+    # Material 1: 3 Keywords Match
+    # Material 2: 4 Keywords Match
+    # Material 3: 8 Keywords Match
+    # Winner: Material 3 (Highest Keyword Matching File)
+    # Invariant: Strict Isolation - ZERO cross matching / mixing of keywords
+    mat_1 = {
+        "id": "mat-1",
+        "name": "Material 1",
+        "keywords": ["apple", "banana", "cherry", "date", "fig", "grape", "kiwi", "lemon", "mango", "nectarine", "orange", "pear", "quince", "raspberry", "strawberry"]
+    }
+    mat_2 = {
+        "id": "mat-2",
+        "name": "Material 2",
+        "keywords": ["red", "blue", "green", "yellow", "purple", "cyan", "magenta", "black", "white", "gray", "silver", "gold", "bronze", "pink", "brown"]
+    }
+    mat_3 = {
+        "id": "mat-3",
+        "name": "Material 3",
+        "keywords": ["cpu", "ram", "gpu", "disk", "kernel", "thread", "process", "cache", "bus", "register", "socket", "core", "clock", "voltage", "fan"]
+    }
+
+    test_multi_reflection = (
+        "We tested apple, banana, cherry on a red, blue, green, yellow board. "
+        "The system utilized cpu, ram, gpu, disk with kernel, thread, process and cache optimization."
+    )
+
+    res_multi = select_best_reference(test_multi_reflection, [mat_1, mat_2, mat_3])
+    assert res_multi.selected_reference_id == "mat-3", f"Expected mat-3 (highest count), got {res_multi.selected_reference_id}"
+    assert res_multi.reference_score == 8, f"Expected reference score 8, got {res_multi.reference_score}"
+    assert len(res_multi.matched_keywords) == 8, f"Expected 8 matched keywords, got {len(res_multi.matched_keywords)}"
+    assert res_multi.all_keyword_counts == {"mat-1": 3, "mat-2": 4, "mat-3": 8}
+
+    # Strict isolation check: no keyword cross-contamination
+    for kw in ["apple", "banana", "cherry", "red", "blue", "green", "yellow"]:
+        assert kw not in res_multi.matched_keywords, f"Cross-matched keyword '{kw}' from other files leaked into mat-3!"
+    for kw in ["cpu", "ram", "gpu", "disk", "kernel", "thread", "process", "cache"]:
+        assert kw in res_multi.matched_keywords, f"Missing expected mat-3 keyword '{kw}'"
+
     print("  --> PASS: Multi-reference similarity selection and threshold gating verified.")
 
 def test_excel_exports():
