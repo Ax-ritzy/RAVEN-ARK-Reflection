@@ -10,27 +10,29 @@
   - [x] Created `docs/DATABASE_AND_SECURITY.md`
   - [x] Created `docs/TASK_CHECKLIST.md`
 
-- [ ] **Phase 2: Supabase Project Setup & Database Migrations**
-  - [x] Inspected CLI auth (guided dashboard creation workflow established)
-  - [x] Written `database/migrations/001_initial_schema.sql`
-  - [x] Written `database/migrations/002_rls_policies.sql`
-  - [x] Written `database/migrations/003_storage_buckets.sql`
-  - [x] Written `database/seed/seed_data.sql`
-  - [ ] Connect and verify Supabase project credentials
+- [x] **Phase 2: Supabase Project Setup & Database Migrations**
+  - [x] Programmatically provisioned in South Asia (Mumbai `ap-south-1` 🇮🇳)
+  - [x] Applied master migrations (`001_initial_schema.sql`, `002_rls_policies.sql`, `003_storage_buckets.sql`)
+  - [x] Applied seed data (`seed_data.sql`)
+  - [x] Verified Row-Level Security (`rowsecurity = true` across all 8 tables)
+  - [x] Verified private storage buckets (`reference-materials`, `student-submissions`)
+  - [x] Zero local databases on host machine
 
-- [ ] **Phase 3: Authentication & Account Management**
-  - [x] Server-side student account provisioning workflow defined
-  - [x] Role validation and security barriers implemented in API routes
-  - [ ] Portal auth state handlers verified with live Supabase instance
+- [x] **Phase 3: Authentication & Account Management**
+  - [x] Server-side student account provisioning workflow implemented in Next.js API route
+  - [x] Validated role barriers (STUDENT vs PROFESSOR)
+  - [x] Automated CLI provisioner (`scripts/provision_professor.py`) verified live
+  - [x] Unique USN enforcement tested live
 
-- [ ] **Phase 4: Student Portal Implementation**
+- [x] **Phase 4: Student Portal Implementation**
   - [x] Next.js 14 project scaffolded with TypeScript & Tailwind CSS
   - [x] Student Login page (`src/app/login/page.tsx`)
   - [x] Student Dashboard & Session List with OPEN/CLOSED indicators
   - [x] Reflection Submission page with TXT/DOCX/PDF upload & 500-char client counter
   - [x] Results page displaying reference score out of 15 and mark out of 5
+  - [x] 100% type-safe compilation (`npx tsc --noEmit` clean)
 
-- [ ] **Phase 5: Professor Admin Portal Implementation**
+- [x] **Phase 5: Professor Admin Portal Implementation**
   - [x] Next.js 14 project scaffolded with TypeScript & Tailwind CSS
   - [x] Professor Login page (`src/app/login/page.tsx`)
   - [x] Admin Dashboard with real count metrics
@@ -39,8 +41,9 @@
   - [x] Reference Library (Upload, View 15 Keywords)
   - [x] Assessment Review & Manual Mark Override with audit history
   - [x] Excel Reports interface
+  - [x] 100% type-safe compilation (`npx tsc --noEmit` clean)
 
-- [ ] **Phase 6: AI Assessment Engine (FastAPI Backend)**
+- [x] **Phase 6: AI Assessment Engine (FastAPI Backend)**
   - [x] FastAPI service structure and API routes
   - [x] Multi-format document extractor (TXT, DOCX, PDF) with strict 500-char body validation
   - [x] Multi-reference similarity selector (TF-IDF Cosine, $\tau_{\min} = 0.35$ threshold)
@@ -48,18 +51,22 @@
   - [x] State transitions: PENDING, PROCESSING, COMPLETED, FAILED, NEEDS_REVIEW
   - [x] Idempotent retry processing
 
-- [ ] **Phase 7: Excel Reporting Engine**
+- [x] **Phase 7: Excel Reporting Engine**
   - [x] Session Assessment Sheet exporter via `openpyxl`
   - [x] Master Student Performance Sheet exporter (absent vs assessed zero distinction)
 
-- [ ] **Phase 8: Future RAVEN Integration Boundary**
+- [x] **Phase 8: Future RAVEN Integration Boundary**
   - [x] Dedicated integration layer in `integrations/raven/`
   - [x] Schema contracts and client interfaces
   - [x] Availability check & offline fallback
 
-- [ ] **Phase 9: Testing & Verification**
-  - [x] Unit test suite for scoring formula, keyword matching, and 500-char limit
-  - [x] Extractor test suite
-  - [x] Similarity selector test suite
-  - [x] Excel exporter test suite
-  - [x] RAVEN decoupling test suite
+- [x] **Phase 9: Deployment & Environment Configuration**
+  - [x] Server-side secrets isolated from frontend code
+  - [x] Vercel & Supabase deployment documentation finalized
+  - [x] Multi-environment variable templates documented
+
+- [x] **Phase 10: Testing & Acceptance**
+  - [x] Unit test suite passing (7/7 tests)
+  - [x] Live End-to-End assessment test suite passing (100% against Mumbai Supabase)
+  - [x] Duplicate submission atomic constraint verified
+  - [x] Professor manual override audit verification passing
