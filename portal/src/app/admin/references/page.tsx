@@ -20,12 +20,26 @@ export default function ReferenceLibraryPage() {
   const [references, setReferences] = useState<ReferenceMaterial[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [showModal, setShowModal] = useState(false);
+  // Create Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");
   const [referenceText, setReferenceText] = useState("");
   const [rawKeywords, setRawKeywords] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Edit Modal State
+  const [editReference, setEditReference] = useState<ReferenceMaterial | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editReferenceText, setEditReferenceText] = useState("");
+  const [editRawKeywords, setEditRawKeywords] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Delete Modal State
+  const [deleteTarget, setDeleteTarget] = useState<ReferenceMaterial | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchReferences = async () => {
     const supabase = createClient();
@@ -70,6 +84,12 @@ export default function ReferenceLibraryPage() {
     .map((k) => k.trim().toLowerCase())
     .filter((k) => k.length > 0);
   const distinctKeywords = Array.from(new Set(parsedKeywords));
+
+  const parsedEditKeywords = editRawKeywords
+    .split(/[\n,]/)
+    .map((k) => k.trim().toLowerCase())
+    .filter((k) => k.length > 0);
+  const distinctEditKeywords = Array.from(new Set(parsedEditKeywords));
 
   const handleCreateReference = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +137,7 @@ export default function ReferenceLibraryPage() {
 
       if (kwErr) throw new Error(kwErr.message);
 
-      setShowModal(false);
+      setShowCreateModal(false);
       setName("");
       setReferenceText("");
       setRawKeywords("");
@@ -126,6 +146,86 @@ export default function ReferenceLibraryPage() {
       setModalError(err.message || "Failed to save reference material");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openEditModal = (r: ReferenceMaterial) => {
+    setEditReference(r);
+    setEditName(r.name);
+    setEditReferenceText(r.extracted_text);
+    setEditRawKeywords(r.keywords.join(", "));
+    setEditError(null);
+  };
+
+  const handleUpdateReference = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editReference) return;
+
+    setSavingEdit(true);
+    setEditError(null);
+
+    if (distinctEditKeywords.length !== 15) {
+      setEditError(
+        `A reference must have EXACTLY 15 distinct keywords. You currently have ${distinctEditKeywords.length} distinct keywords.`
+      );
+      setSavingEdit(false);
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+
+      // 1. Update reference material record
+      const { error: refErr } = await supabase
+        .from("reference_materials")
+        .update({
+          name: editName.trim(),
+          extracted_text: editReferenceText.trim(),
+        })
+        .eq("id", editReference.id);
+
+      if (refErr) throw new Error(refErr.message);
+
+      // 2. Update keyword set
+      const { error: kwErr } = await supabase
+        .from("reference_keyword_sets")
+        .update({
+          keywords: distinctEditKeywords,
+        })
+        .eq("reference_id", editReference.id);
+
+      if (kwErr) throw new Error(kwErr.message);
+
+      setEditReference(null);
+      fetchReferences();
+    } catch (err: any) {
+      setEditError(err.message || "Failed to update reference material");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteReference = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("reference_materials")
+        .delete()
+        .eq("id", deleteTarget.id);
+
+      if (error) throw new Error(error.message);
+
+      setDeleteTarget(null);
+      fetchReferences();
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete reference material.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -153,7 +253,7 @@ export default function ReferenceLibraryPage() {
 
         <InteractiveButton
           onClick={() => {
-            setShowModal(true);
+            setShowCreateModal(true);
             setModalError(null);
           }}
           variant="primary"
@@ -187,7 +287,7 @@ export default function ReferenceLibraryPage() {
             </p>
             <InteractiveButton
               onClick={() => {
-                setShowModal(true);
+                setShowCreateModal(true);
                 setModalError(null);
               }}
               variant="primary"
@@ -218,6 +318,24 @@ export default function ReferenceLibraryPage() {
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm">
                       ✓ {r.keywords.length} Calibrated Keywords
                     </span>
+                    <InteractiveButton
+                      onClick={() => openEditModal(r)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Edit
+                    </InteractiveButton>
+                    <InteractiveButton
+                      onClick={() => {
+                        setDeleteTarget(r);
+                        setDeleteError(null);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50/60"
+                    >
+                      Delete
+                    </InteractiveButton>
                   </div>
                 </div>
 
@@ -263,9 +381,9 @@ export default function ReferenceLibraryPage() {
         )}
       </div>
 
-      {/* Upload Reference Modal */}
+      {/* CREATE REFERENCE MODAL */}
       <AnimatePresence>
-        {showModal && (
+        {showCreateModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
@@ -282,7 +400,7 @@ export default function ReferenceLibraryPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setShowCreateModal(false)}
                   className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
                 >
                   ✕
@@ -359,7 +477,7 @@ export default function ReferenceLibraryPage() {
                   <InteractiveButton
                     type="button"
                     variant="outline"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => setShowCreateModal(false)}
                   >
                     Cancel
                   </InteractiveButton>
@@ -372,6 +490,176 @@ export default function ReferenceLibraryPage() {
                   </InteractiveButton>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EDIT REFERENCE MODAL */}
+      <AnimatePresence>
+        {editReference && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-peach-200/60 max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-peach-100 text-peach-800 mb-1">
+                    Edit Reference
+                  </div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Edit Reference Material</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Update reference notes & re-calibrate the 15 evaluation keywords
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditReference(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {editError && (
+                <div className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200 text-red-700 text-xs leading-relaxed flex items-center gap-2">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateReference} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+                    Reference Material Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+                    Authoritative Lecture / Subject Text
+                  </label>
+                  <textarea
+                    rows={5}
+                    required
+                    value={editReferenceText}
+                    onChange={(e) => setEditReferenceText(e.target.value)}
+                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      Exact 15 Subject-Specific Keywords
+                    </label>
+                    <span
+                      className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full border ${
+                        distinctEditKeywords.length === 15
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                          : "bg-amber-50 text-amber-700 border-amber-300"
+                      }`}
+                    >
+                      {distinctEditKeywords.length} / 15 keywords
+                    </span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    required
+                    value={editRawKeywords}
+                    onChange={(e) => setEditRawKeywords(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-cool-400 focus:border-cool-400 focus:outline-none transition"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Separate keywords with commas or newlines. Must be exactly 15 distinct keywords.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
+                  <InteractiveButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditReference(null)}
+                  >
+                    Cancel
+                  </InteractiveButton>
+                  <InteractiveButton
+                    type="submit"
+                    variant="primary"
+                    disabled={savingEdit || !editName.trim() || distinctEditKeywords.length !== 15}
+                  >
+                    {savingEdit ? "Updating..." : "Save Changes"}
+                  </InteractiveButton>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-rose-200 max-w-md w-full p-6 sm:p-7 space-y-4"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-2">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Delete Reference Material?
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-slate-900">{deleteTarget.name}</strong>?
+                  This will remove its 15 calibrated keywords and unlink it from any assessment sessions.
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end gap-3">
+                <InteractiveButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  Cancel
+                </InteractiveButton>
+                <InteractiveButton
+                  type="button"
+                  variant="primary"
+                  className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white"
+                  onClick={handleDeleteReference}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting..." : "Permanently Delete"}
+                </InteractiveButton>
+              </div>
             </motion.div>
           </div>
         )}

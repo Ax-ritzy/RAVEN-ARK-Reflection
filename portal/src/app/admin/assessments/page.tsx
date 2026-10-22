@@ -29,11 +29,17 @@ export default function AssessmentReviewPage() {
   const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Grade Override Modal State
   const [overrideModal, setOverrideModal] = useState<AssessmentRow | null>(null);
   const [overrideMark, setOverrideMark] = useState<number>(0);
   const [overrideReason, setOverrideReason] = useState("");
   const [savingOverride, setSavingOverride] = useState(false);
   const [overrideError, setOverrideError] = useState<string | null>(null);
+
+  // Delete Submission Modal State
+  const [deleteTarget, setDeleteTarget] = useState<AssessmentRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchAssessments = async () => {
     const supabase = createClient();
@@ -149,6 +155,32 @@ export default function AssessmentReviewPage() {
     }
   };
 
+  const handleDeleteSubmission = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const supabase = createClient();
+
+      // Deleting the submission record cascades to assessments and mark_overrides
+      const { error } = await supabase
+        .from("submissions")
+        .delete()
+        .eq("id", deleteTarget.submission_id);
+
+      if (error) throw new Error(error.message);
+
+      setDeleteTarget(null);
+      fetchAssessments();
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete submission.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -165,7 +197,7 @@ export default function AssessmentReviewPage() {
           Submissions & <span className="text-transparent bg-clip-text bg-gradient-to-r from-cool-600 via-indigo-600 to-peach-600">Assessment Audits</span>
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Review automated cosine similarity matchings, deterministic keyword matches (Mark = Score / 3), and execute professor overrides.
+          Review automated cosine similarity matchings, deterministic keyword matches (Mark = Score / 3), and execute professor overrides or deletions.
         </p>
       </motion.div>
 
@@ -265,18 +297,31 @@ export default function AssessmentReviewPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-5 text-right">
-                        <InteractiveButton
-                          onClick={() => {
-                            setOverrideModal(a);
-                            setOverrideMark(a.final_approved_mark);
-                            setOverrideReason("");
-                            setOverrideError(null);
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Override Mark
-                        </InteractiveButton>
+                        <div className="inline-flex items-center gap-1.5 justify-end">
+                          <InteractiveButton
+                            onClick={() => {
+                              setOverrideModal(a);
+                              setOverrideMark(a.final_approved_mark);
+                              setOverrideReason("");
+                              setOverrideError(null);
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Override Mark
+                          </InteractiveButton>
+                          <InteractiveButton
+                            onClick={() => {
+                              setDeleteTarget(a);
+                              setDeleteError(null);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50/60"
+                          >
+                            Delete
+                          </InteractiveButton>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -287,7 +332,7 @@ export default function AssessmentReviewPage() {
         </GlowCard>
       </motion.div>
 
-      {/* Override Modal */}
+      {/* OVERRIDE MODAL */}
       <AnimatePresence>
         {overrideModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -424,6 +469,64 @@ export default function AssessmentReviewPage() {
                   </InteractiveButton>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-rose-200 max-w-md w-full p-6 sm:p-7 space-y-4"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-2">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Delete Student Submission?
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete the submission by <strong className="text-slate-900">{deleteTarget.student_name}</strong> (<span className="font-mono text-cool-600 font-bold">{deleteTarget.student_usn}</span>) for <strong className="text-slate-900">{deleteTarget.session_name}</strong>?
+                  <span className="block mt-1 text-slate-500">
+                    This will delete their reflection record and allow the student to resubmit their reflection for this session.
+                  </span>
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end gap-3">
+                <InteractiveButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  Cancel
+                </InteractiveButton>
+                <InteractiveButton
+                  type="button"
+                  variant="primary"
+                  className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white"
+                  onClick={handleDeleteSubmission}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting..." : "Permanently Delete"}
+                </InteractiveButton>
+              </div>
             </motion.div>
           </div>
         )}
