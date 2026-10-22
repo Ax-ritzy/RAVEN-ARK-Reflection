@@ -50,6 +50,38 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     except Exception as e:
         raise ExtractionError(f"Failed to read PDF file: {str(e)}")
 
+def extract_document_text(filename: str, file_bytes: bytes) -> str:
+    """
+    Extracts complete authoritative text from reference materials (no character count ceiling).
+    Supports .pdf, .docx, .txt, .ocr, .md, and other readable text documents.
+    """
+    if not file_bytes:
+        raise ExtractionError("Uploaded document is empty (0 bytes).")
+
+    ext = filename.lower().split(".")[-1] if "." in filename else ""
+
+    if ext in ["txt", "text", "ocr", "md", "markdown", "log", "rtf", ""]:
+        text = extract_text_from_txt(file_bytes)
+    elif ext == "docx":
+        text = extract_text_from_docx(file_bytes)
+    elif ext == "pdf":
+        text = extract_text_from_pdf(file_bytes)
+    else:
+        # Graceful fallback: attempt plain text decoding
+        try:
+            text = file_bytes.decode("utf-8").strip()
+        except Exception:
+            try:
+                text = file_bytes.decode("latin-1").strip()
+            except Exception:
+                raise ExtractionError(f"Unsupported document format '.{ext}'. Supported formats are: .pdf, .docx, .txt, .ocr, .md")
+
+    cleaned_text = re.sub(r'\s+', ' ', text).strip()
+    if not cleaned_text:
+        raise ExtractionError("No readable text could be extracted from this document.")
+
+    return cleaned_text
+
 def extract_and_validate_reflection(
     filename: str, 
     file_bytes: bytes, 

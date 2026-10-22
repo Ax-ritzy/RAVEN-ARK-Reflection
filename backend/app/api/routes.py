@@ -11,7 +11,13 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response, 
 from pydantic import BaseModel, Field
 
 from app.config import settings
-from app.services.extractor import extract_and_validate_reflection, ExtractionError, CharacterLimitExceededError
+from app.services.extractor import (
+    extract_and_validate_reflection, 
+    extract_document_text, 
+    ExtractionError, 
+    CharacterLimitExceededError
+)
+from app.services.keyword_extractor import extract_top_15_keywords
 from app.services.similarity import select_best_reference
 from app.services.scorer import calculate_deterministic_score, ScoringError
 from app.services.excel_exporter import generate_session_assessment_sheet, generate_master_performance_sheet
@@ -98,6 +104,42 @@ async def extract_document(
     except Exception as e:
         raise HTTPException(
             status_code=500, 
+            detail={"error": "INTERNAL_SERVER_ERROR", "message": str(e)}
+        )
+
+@router.post("/api/references/extract-keywords")
+async def extract_reference_keywords(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None)
+):
+    try:
+        content = await file.read()
+        extracted_text = extract_document_text(
+            filename=file.filename or "reference_document.txt",
+            file_bytes=content
+        )
+        keywords = extract_top_15_keywords(extracted_text)
+        return {
+            "filename": file.filename,
+            "title": title or (file.filename.rsplit(".", 1)[0] if file.filename else "Reference Material"),
+            "extracted_text": extracted_text,
+            "char_count": len(extracted_text),
+            "keywords": keywords,
+            "status": "CALIBRATED"
+        }
+    except ExtractionError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "EXTRACTION_FAILED", "message": str(e)}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "KEYWORD_EXTRACTION_FAILED", "message": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
             detail={"error": "INTERNAL_SERVER_ERROR", "message": str(e)}
         )
 

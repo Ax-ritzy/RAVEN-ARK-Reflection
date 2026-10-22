@@ -58,7 +58,9 @@ def run_e2e_assessment_flow():
     prof_token_resp = api_post(auth_url, login_payload, auth_headers)
     prof_token = prof_token_resp["access_token"]
     prof_auth_id = prof_token_resp["user"]["id"]
-    print(f"  --> Professor Authenticated! (UID: {prof_auth_id})")
+    prof_prof = api_get(f"{SUPABASE_URL}/rest/v1/profiles?auth_user_id=eq.{prof_auth_id}", headers_service)[0]
+    prof_id = prof_prof["id"]
+    print(f"  --> Professor Authenticated! (UID: {prof_auth_id}, Profile ID: {prof_id})")
 
     # 2. Professor provisions Student 1 (USN: 1RV21CS001)
     print("\n[2] Provisioning Student Roster & Auth Account (Server-Side)...")
@@ -113,13 +115,40 @@ def run_e2e_assessment_flow():
     # 4. Fetch Open Session & Reference
     print("\n[4] Querying Open Session and Reference Material...")
     sessions = api_get(f"{SUPABASE_URL}/rest/v1/sessions?status=eq.OPEN", headers_student)
-    assert len(sessions) > 0, "No open session found"
+    if len(sessions) == 0:
+        # Ensure test reference material exists
+        all_refs = api_get(f"{SUPABASE_URL}/rest/v1/reference_materials?select=id,name", headers_service)
+        assert len(all_refs) > 0, "Reference materials required for testing"
+        target_ref_id = all_refs[0]["id"]
+
+        # Ensure an open test session exists
+        new_sess = api_post(f"{SUPABASE_URL}/rest/v1/sessions", {
+            "name": "Reflection Session 1: Neural Networks & Backprop",
+            "status": "OPEN",
+            "created_by": prof_id
+        }, headers_service)
+        session_id = new_sess[0]["id"]
+        
+        api_post(f"{SUPABASE_URL}/rest/v1/session_references", {
+            "session_id": session_id,
+            "reference_id": target_ref_id
+        }, headers_service)
+        sessions = api_get(f"{SUPABASE_URL}/rest/v1/sessions?id=eq.{session_id}", headers_student)
+
     session = sessions[0]
     session_id = session["id"]
     print(f"  --> Target Session: '{session['name']}' (ID: {session_id})")
 
     # Fetch reference linked to this session
     ref_links = api_get(f"{SUPABASE_URL}/rest/v1/session_references?session_id=eq.{session_id}", headers_service)
+    if len(ref_links) == 0:
+        all_refs = api_get(f"{SUPABASE_URL}/rest/v1/reference_materials?select=id,name", headers_service)
+        api_post(f"{SUPABASE_URL}/rest/v1/session_references", {
+            "session_id": session_id,
+            "reference_id": all_refs[0]["id"]
+        }, headers_service)
+        ref_links = api_get(f"{SUPABASE_URL}/rest/v1/session_references?session_id=eq.{session_id}", headers_service)
+
     ref_id = ref_links[0]["reference_id"]
     ref_record = api_get(f"{SUPABASE_URL}/rest/v1/reference_materials?id=eq.{ref_id}", headers_service)[0]
     kw_record = api_get(f"{SUPABASE_URL}/rest/v1/reference_keyword_sets?reference_id=eq.{ref_id}", headers_service)[0]

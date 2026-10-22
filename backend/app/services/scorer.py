@@ -1,12 +1,7 @@
 import re
 from typing import List, Set, Tuple, Dict, Any
 
-STANDARD_STOPWORDS: Set[str] = {
-    "the", "and", "is", "or", "if", "a", "an", "in", "on", "of", "to", "for", 
-    "with", "at", "by", "from", "as", "about", "into", "through", "after", 
-    "over", "between", "out", "against", "during", "without", "before", 
-    "under", "around", "among", "this", "that", "these", "those", "it", "its"
-}
+from app.services.keyword_extractor import FORBIDDEN_STOPWORDS
 
 class ScoringError(Exception):
     pass
@@ -23,7 +18,7 @@ def validate_keyword_set(keywords: List[str]) -> List[str]:
         token = kw.strip().lower()
         if not token:
             continue
-        if token in STANDARD_STOPWORDS:
+        if token in FORBIDDEN_STOPWORDS:
             continue
         if token not in seen:
             seen.add(token)

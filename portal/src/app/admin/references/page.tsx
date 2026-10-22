@@ -20,19 +20,24 @@ export default function ReferenceLibraryPage() {
   const [references, setReferences] = useState<ReferenceMaterial[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Create Modal State
+  // Create Reference Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [referenceText, setReferenceText] = useState("");
-  const [rawKeywords, setRawKeywords] = useState("");
+  const [extractedKeywords, setExtractedKeywords] = useState<string[]>([]);
+  const [docCharCount, setDocCharCount] = useState<number>(0);
+  const [extractingDoc, setExtractingDoc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  // Edit Modal State
+  // Edit Reference Modal State
   const [editReference, setEditReference] = useState<ReferenceMaterial | null>(null);
   const [editName, setEditName] = useState("");
+  const [editFile, setEditFile] = useState<File | null>(null);
   const [editReferenceText, setEditReferenceText] = useState("");
-  const [editRawKeywords, setEditRawKeywords] = useState("");
+  const [editKeywords, setEditKeywords] = useState<string[]>([]);
+  const [editExtracting, setEditExtracting] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -79,26 +84,79 @@ export default function ReferenceLibraryPage() {
     checkAuth();
   }, [router]);
 
-  const parsedKeywords = rawKeywords
-    .split(/[\n,]/)
-    .map((k) => k.trim().toLowerCase())
-    .filter((k) => k.length > 0);
-  const distinctKeywords = Array.from(new Set(parsedKeywords));
+  // Automated Document Read & Non-AI 15-Keyword Extraction
+  const handleProcessUploadedDocument = async (selectedFile: File, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditFile(selectedFile);
+      setEditExtracting(true);
+      setEditError(null);
+    } else {
+      setFile(selectedFile);
+      setExtractingDoc(true);
+      setModalError(null);
+    }
 
-  const parsedEditKeywords = editRawKeywords
-    .split(/[\n,]/)
-    .map((k) => k.trim().toLowerCase())
-    .filter((k) => k.length > 0);
-  const distinctEditKeywords = Array.from(new Set(parsedEditKeywords));
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_FASTAPI_BACKEND_URL || "http://localhost:8000";
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const resp = await fetch(`${backendUrl}/api/references/extract-keywords`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => null);
+        throw new Error(errJson?.detail?.message || "Failed to extract keywords from document.");
+      }
+
+      const data = await resp.json();
+      const keywords = data.keywords || [];
+
+      if (isEdit) {
+        if (!editName.trim()) {
+          setEditName(selectedFile.name.replace(/\.[^/.]+$/, ""));
+        }
+        setEditReferenceText(data.extracted_text || "");
+        setEditKeywords(keywords);
+      } else {
+        if (!name.trim()) {
+          setName(selectedFile.name.replace(/\.[^/.]+$/, ""));
+        }
+        setReferenceText(data.extracted_text || "");
+        setDocCharCount(data.char_count || 0);
+        setExtractedKeywords(keywords);
+      }
+    } catch (err: any) {
+      if (isEdit) {
+        setEditError(err.message || "Could not process document.");
+      } else {
+        setModalError(err.message || "Could not process document.");
+      }
+    } finally {
+      if (isEdit) {
+        setEditExtracting(false);
+      } else {
+        setExtractingDoc(false);
+      }
+    }
+  };
 
   const handleCreateReference = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setModalError(null);
 
-    if (distinctKeywords.length !== 15) {
+    if (!file || !referenceText) {
+      setModalError("Please upload a lecture document (.pdf, .docx, .txt, .ocr) to extract reference keywords.");
+      setSaving(false);
+      return;
+    }
+
+    if (extractedKeywords.length !== 15) {
       setModalError(
-        `A reference must have EXACTLY 15 distinct keywords. You currently have ${distinctKeywords.length} distinct keywords.`
+        `Exactly 15 distinct keywords must be calibrated. Currently extracted: ${extractedKeywords.length} keywords.`
       );
       setSaving(false);
       return;
@@ -113,11 +171,18 @@ export default function ReferenceLibraryPage() {
       .single();
 
     try {
+      // 1. Upload original file to Supabase storage
+      const storagePath = `references/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      await supabase.storage
+        .from("reference-materials")
+        .upload(storagePath, file, { upsert: true });
+
+      // 2. Insert into reference_materials
       const { data: newRef, error: refErr } = await supabase
         .from("reference_materials")
         .insert({
           name: name.trim(),
-          storage_path: `references/${Date.now()}_text.txt`,
+          storage_path: storagePath,
           extracted_text: referenceText.trim(),
           uploaded_by: profile?.id,
         })
@@ -126,21 +191,25 @@ export default function ReferenceLibraryPage() {
 
       if (refErr) throw new Error(refErr.message);
 
+      // 3. Insert the 15 calibrated keywords
       const { error: kwErr } = await supabase
         .from("reference_keyword_sets")
         .insert({
           reference_id: newRef.id,
           version: 1,
-          keywords: distinctKeywords,
+          keywords: extractedKeywords,
           is_active: true,
         });
 
       if (kwErr) throw new Error(kwErr.message);
 
+      // Reset modal state
       setShowCreateModal(false);
       setName("");
+      setFile(null);
       setReferenceText("");
-      setRawKeywords("");
+      setExtractedKeywords([]);
+      setDocCharCount(0);
       fetchReferences();
     } catch (err: any) {
       setModalError(err.message || "Failed to save reference material");
@@ -153,7 +222,8 @@ export default function ReferenceLibraryPage() {
     setEditReference(r);
     setEditName(r.name);
     setEditReferenceText(r.extracted_text);
-    setEditRawKeywords(r.keywords.join(", "));
+    setEditKeywords([...r.keywords]);
+    setEditFile(null);
     setEditError(null);
   };
 
@@ -164,9 +234,9 @@ export default function ReferenceLibraryPage() {
     setSavingEdit(true);
     setEditError(null);
 
-    if (distinctEditKeywords.length !== 15) {
+    if (editKeywords.length !== 15) {
       setEditError(
-        `A reference must have EXACTLY 15 distinct keywords. You currently have ${distinctEditKeywords.length} distinct keywords.`
+        `A reference must have EXACTLY 15 distinct keywords. You currently have ${editKeywords.length} distinct keywords.`
       );
       setSavingEdit(false);
       return;
@@ -175,22 +245,36 @@ export default function ReferenceLibraryPage() {
     try {
       const supabase = createClient();
 
-      // 1. Update reference material record
+      // 1. If replacement document was uploaded, save it to storage
+      let storagePath: string | undefined = undefined;
+      if (editFile) {
+        storagePath = `references/${Date.now()}_${editFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+        await supabase.storage
+          .from("reference-materials")
+          .upload(storagePath, editFile, { upsert: true });
+      }
+
+      // 2. Update reference material record
+      const updatePayload: any = {
+        name: editName.trim(),
+        extracted_text: editReferenceText.trim(),
+      };
+      if (storagePath) {
+        updatePayload.storage_path = storagePath;
+      }
+
       const { error: refErr } = await supabase
         .from("reference_materials")
-        .update({
-          name: editName.trim(),
-          extracted_text: editReferenceText.trim(),
-        })
+        .update(updatePayload)
         .eq("id", editReference.id);
 
       if (refErr) throw new Error(refErr.message);
 
-      // 2. Update keyword set
+      // 3. Update keyword set
       const { error: kwErr } = await supabase
         .from("reference_keyword_sets")
         .update({
-          keywords: distinctEditKeywords,
+          keywords: editKeywords,
         })
         .eq("reference_id", editReference.id);
 
@@ -241,19 +325,23 @@ export default function ReferenceLibraryPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-peach-100/70 border border-peach-200 text-peach-900 mb-2">
             <span className="w-2 h-2 rounded-full bg-peach-500 animate-pulse" />
-            Calibration & Benchmark Engine
+            Document-Driven Calibration Engine
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Reference Library & <span className="text-transparent bg-clip-text bg-gradient-to-r from-peach-600 via-rose-500 to-cool-600">15-Keyword Sets</span>
+            Reference Library & <span className="text-transparent bg-clip-text bg-gradient-to-r from-peach-600 via-rose-500 to-cool-600">Automated 15-Keywords</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Authoritative lecture materials, cosine similarity benchmarks, and strict 15-keyword evaluation sets.
+            Upload lecture documents (.pdf, .docx, .txt, .ocr). System automatically extracts text and calculates 15 non-stopword evaluation keywords.
           </p>
         </div>
 
         <InteractiveButton
           onClick={() => {
             setShowCreateModal(true);
+            setName("");
+            setFile(null);
+            setReferenceText("");
+            setExtractedKeywords([]);
             setModalError(null);
           }}
           variant="primary"
@@ -263,7 +351,7 @@ export default function ReferenceLibraryPage() {
             </svg>
           }
         >
-          Add Reference Material
+          Upload Reference Document
         </InteractiveButton>
       </motion.div>
 
@@ -281,9 +369,9 @@ export default function ReferenceLibraryPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
             </div>
-            <h3 className="text-base font-bold text-slate-800">No reference materials uploaded yet</h3>
+            <h3 className="text-base font-bold text-slate-800">No reference documents uploaded yet</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
-              Upload authoritative lecture texts and calibrate exactly 15 keywords to start evaluating student reflections.
+              Upload a lecture document to automatically extract text and calibrate the 15 keywords.
             </p>
             <InteractiveButton
               onClick={() => {
@@ -292,7 +380,7 @@ export default function ReferenceLibraryPage() {
               }}
               variant="primary"
             >
-              Upload First Reference
+              Upload First Reference Document
             </InteractiveButton>
           </GlowCard>
         ) : (
@@ -342,9 +430,9 @@ export default function ReferenceLibraryPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      15 Deterministic Evaluation Keywords (Score = Matches / 3)
+                      15 Subject-Specific Keywords (1 Match = 1 Mark, Final Mark = Score / 3)
                     </h4>
-                    <span className="text-[11px] font-mono text-slate-400">1 match = 1/3 mark</span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-semibold">Zero Stopwords Guaranteed</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {r.keywords.map((kw, i) => (
@@ -364,7 +452,7 @@ export default function ReferenceLibraryPage() {
                   <div className="bg-slate-50/80 backdrop-blur-xs p-4 rounded-xl border border-slate-100 text-xs text-slate-600">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wide">
-                        Authoritative Text Excerpt
+                        Authoritative Extracted Document Excerpt
                       </span>
                       <span className="text-[11px] font-mono text-slate-400">
                         {r.extracted_text.length} chars
@@ -381,7 +469,7 @@ export default function ReferenceLibraryPage() {
         )}
       </div>
 
-      {/* CREATE REFERENCE MODAL */}
+      {/* UPLOAD & AUTO-CALIBRATE REFERENCE MODAL */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -394,9 +482,9 @@ export default function ReferenceLibraryPage() {
             >
               <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Upload Reference Material</h2>
+                  <h2 className="text-xl font-extrabold text-slate-900">Upload Reference Document</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Provide authoritative lecture content & calibrate exactly 15 keywords
+                    File-read performs automated NLP extraction of 15 keywords (generic English forbidden)
                   </p>
                 </div>
                 <button
@@ -416,7 +504,8 @@ export default function ReferenceLibraryPage() {
                 </div>
               )}
 
-              <form onSubmit={handleCreateReference} className="space-y-4">
+              <form onSubmit={handleCreateReference} className="space-y-5">
+                {/* Reference Title */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
                     Reference Material Title
@@ -431,47 +520,79 @@ export default function ReferenceLibraryPage() {
                   />
                 </div>
 
+                {/* Document File Dropzone */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-                    Authoritative Lecture / Subject Text
+                    Upload Lecture File (.pdf, .docx, .txt, .ocr, .md)
                   </label>
-                  <textarea
-                    rows={5}
-                    required
-                    value={referenceText}
-                    onChange={(e) => setReferenceText(e.target.value)}
-                    placeholder="Paste the authoritative lecture summary or slide transcript used for semantic cosine similarity matching..."
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition leading-relaxed"
-                  />
+                  <div className="border-2 border-dashed border-peach-200 hover:border-peach-400 rounded-2xl p-6 text-center transition bg-peach-50/30 hover:bg-peach-50/60 cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.txt,.ocr,.md,.text"
+                      required
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleProcessUploadedDocument(e.target.files[0], false);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Upload PDF, DOCX, TXT, OCR, or Markdown. The system will perform a complete document read.
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      Exact 15 Subject-Specific Keywords
-                    </label>
-                    <span
-                      className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full border ${
-                        distinctKeywords.length === 15
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                          : "bg-amber-50 text-amber-700 border-amber-300"
-                      }`}
-                    >
-                      {distinctKeywords.length} / 15 keywords
-                    </span>
+                {/* Processing State */}
+                {extractingDoc && (
+                  <div className="p-4 rounded-2xl bg-cool-50 border border-cool-200 text-center space-y-2">
+                    <div className="w-6 h-6 border-2 border-cool-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs font-bold text-cool-800">
+                      Reading document & computing 15 keywords...
+                    </p>
+                    <p className="text-[11px] text-cool-600">
+                      Purging generic stopwords ("the", "is", "as", "for", "have", "that") and extracting domain terms.
+                    </p>
                   </div>
-                  <textarea
-                    rows={4}
-                    required
-                    value={rawKeywords}
-                    onChange={(e) => setRawKeywords(e.target.value)}
-                    placeholder="optimization, gradient, backpropagation, weights, convergence, epochs, momentum, regularization, hyperparameter, loss, activation, stochastic, normalization, landscape, decay"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-cool-400 focus:border-cool-400 focus:outline-none transition"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Separate keywords with commas or newlines. Duplicate entries will be automatically unified.
-                  </p>
-                </div>
+                )}
+
+                {/* Extracted 15 Keywords Display */}
+                {extractedKeywords.length > 0 && !extractingDoc && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                        Auto-Calibrated Keywords ({extractedKeywords.length} of 15)
+                      </label>
+                      <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        ✓ 15 Keywords Ready
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 max-h-48 overflow-y-auto">
+                      {extractedKeywords.map((kw, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-3 py-1.5 rounded-xl bg-white text-slate-800 font-semibold border border-cool-200/80 shadow-xs flex items-center gap-1.5"
+                        >
+                          <span className="text-[10px] font-bold text-cool-500 font-mono">#{i + 1}</span>
+                          <span>{kw}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    {referenceText && (
+                      <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200 text-[11px] text-slate-600">
+                        <div className="flex justify-between mb-1">
+                          <span className="font-bold text-slate-700">Document Text Read:</span>
+                          <span className="font-mono text-slate-400">{docCharCount} characters</span>
+                        </div>
+                        <p className="line-clamp-2 text-slate-500 font-sans">
+                          {referenceText}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
                   <InteractiveButton
@@ -484,9 +605,9 @@ export default function ReferenceLibraryPage() {
                   <InteractiveButton
                     type="submit"
                     variant="primary"
-                    disabled={saving || !name.trim() || distinctKeywords.length !== 15}
+                    disabled={saving || extractingDoc || !name.trim() || extractedKeywords.length !== 15}
                   >
-                    {saving ? "Saving Material..." : "Save & Calibrate (15 Keywords)"}
+                    {saving ? "Saving Reference..." : "Save & Calibrate (15 Keywords)"}
                   </InteractiveButton>
                 </div>
               </form>
@@ -513,7 +634,7 @@ export default function ReferenceLibraryPage() {
                   </div>
                   <h2 className="text-xl font-extrabold text-slate-900">Edit Reference Material</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Update reference notes & re-calibrate the 15 evaluation keywords
+                    Update reference notes or re-upload a document to refresh the 15 keywords
                   </p>
                 </div>
                 <button
@@ -533,7 +654,7 @@ export default function ReferenceLibraryPage() {
                 </div>
               )}
 
-              <form onSubmit={handleUpdateReference} className="space-y-4">
+              <form onSubmit={handleUpdateReference} className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
                     Reference Material Title
@@ -543,48 +664,57 @@ export default function ReferenceLibraryPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:outline-none transition"
                   />
                 </div>
 
+                {/* Optional Document Replacement */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-                    Authoritative Lecture / Subject Text
+                    Replace Document File (Optional)
                   </label>
-                  <textarea
-                    rows={5}
-                    required
-                    value={editReferenceText}
-                    onChange={(e) => setEditReferenceText(e.target.value)}
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition leading-relaxed"
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt,.ocr,.md,.text"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleProcessUploadedDocument(e.target.files[0], true);
+                      }
+                    }}
+                    className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Upload a new file to re-calculate keywords, or keep existing calibrated keywords below.
+                  </p>
                 </div>
 
+                {editExtracting && (
+                  <div className="p-3.5 rounded-xl bg-cool-50 border border-cool-200 text-center text-xs font-bold text-cool-800">
+                    Re-reading document and updating 15 keywords...
+                  </div>
+                )}
+
+                {/* Keywords Chips */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-                      Exact 15 Subject-Specific Keywords
+                      Active 15 Keywords
                     </label>
-                    <span
-                      className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full border ${
-                        distinctEditKeywords.length === 15
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                          : "bg-amber-50 text-amber-700 border-amber-300"
-                      }`}
-                    >
-                      {distinctEditKeywords.length} / 15 keywords
+                    <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300">
+                      {editKeywords.length} / 15 keywords
                     </span>
                   </div>
-                  <textarea
-                    rows={4}
-                    required
-                    value={editRawKeywords}
-                    onChange={(e) => setEditRawKeywords(e.target.value)}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-cool-400 focus:border-cool-400 focus:outline-none transition"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Separate keywords with commas or newlines. Must be exactly 15 distinct keywords.
-                  </p>
+                  <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 max-h-40 overflow-y-auto">
+                    {editKeywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-white text-slate-800 font-semibold border border-cool-200/80 shadow-xs flex items-center gap-1"
+                      >
+                        <span className="text-[10px] text-cool-500 font-bold">#{i + 1}</span>
+                        <span>{kw}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
@@ -598,7 +728,7 @@ export default function ReferenceLibraryPage() {
                   <InteractiveButton
                     type="submit"
                     variant="primary"
-                    disabled={savingEdit || !editName.trim() || distinctEditKeywords.length !== 15}
+                    disabled={savingEdit || editExtracting || !editName.trim() || editKeywords.length !== 15}
                   >
                     {savingEdit ? "Updating..." : "Save Changes"}
                   </InteractiveButton>

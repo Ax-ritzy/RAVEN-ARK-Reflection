@@ -6,7 +6,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.services.scorer import calculate_deterministic_score, validate_keyword_set, ScoringError
-from app.services.extractor import extract_and_validate_reflection, CharacterLimitExceededError, ExtractionError, check_identity_conflict
+from app.services.extractor import (
+    extract_and_validate_reflection, 
+    extract_document_text,
+    CharacterLimitExceededError, 
+    ExtractionError, 
+    check_identity_conflict
+)
+from app.services.keyword_extractor import extract_top_15_keywords, FORBIDDEN_STOPWORDS
 from app.services.similarity import select_best_reference, compute_cosine_similarity
 from app.services.excel_exporter import generate_session_assessment_sheet, generate_master_performance_sheet
 from integrations.raven.client import RavenWorkerClient
@@ -215,6 +222,35 @@ def test_raven_offline_decoupling():
     assert is_avail is False, "Expected offline worker to be reported as unavailable"
     print("  --> PASS: RAVEN worker offline decoupling and graceful fallback verified.")
 
+def test_reference_document_keyword_extraction():
+    print("[TEST] Running test_reference_document_keyword_extraction...")
+    lecture_text = (
+        "Gradient descent is an optimization algorithm used to minimize the loss function by iteratively moving "
+        "in the direction of steepest descent. Backpropagation calculates the gradient of the error with respect "
+        "to each weight using the chain rule. Key components include learning rate, momentum, activation function, "
+        "convergence, epochs, batch normalization, regularization, stochastic gradient descent, hyperparameter tuning, "
+        "loss landscape, and weight decay."
+    )
+    extracted_text = extract_document_text("lecture1.txt", lecture_text.encode("utf-8"))
+    assert len(extracted_text) > 50, "Extracted text should not be empty"
+
+    keywords = extract_top_15_keywords(extracted_text)
+    assert len(keywords) == 15, f"Must extract exactly 15 keywords, got {len(keywords)}"
+    assert len(set(keywords)) == 15, "Keywords must be distinct"
+
+    # Non-negotiable check: generic English stopwords must NEVER appear as keywords
+    banned_samples = ["as", "a", "is", "the", "for", "have", "has", "it", "that", "with", "and", "in", "of", "to"]
+    for word in banned_samples:
+        assert word in FORBIDDEN_STOPWORDS, f"Word '{word}' should be categorized in FORBIDDEN_STOPWORDS"
+        assert word not in keywords, f"Forbidden stopword '{word}' leaked into keywords!"
+
+    # Verify student scoring with these 15 extracted keywords
+    scoring = calculate_deterministic_score(extracted_text, keywords)
+    assert scoring["reference_score"] == 15, "All 15 keywords matched should give 15 points"
+    assert scoring["calculated_mark"] == 5.00, "15 points / 3 = 5.00 marks"
+
+    print("  --> PASS: Reference document reading, stopword exclusion, and 15-keyword extraction verified.")
+
 if __name__ == "__main__":
     print("=================================================================")
     print("RUNNING AUTOMATED UNIT & INTEGRATION TEST SUITE (X:\\RAVEN ARK)")
@@ -226,6 +262,7 @@ if __name__ == "__main__":
     test_multi_reference_similarity_selection()
     test_excel_exports()
     test_raven_offline_decoupling()
+    test_reference_document_keyword_extraction()
     print("=================================================================")
-    print("ALL TESTS PASSED SUCCESSFULLY! (7/7 suites verified)")
+    print("ALL TESTS PASSED SUCCESSFULLY! (8/8 suites verified)")
     print("=================================================================")
