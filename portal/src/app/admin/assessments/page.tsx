@@ -7,80 +7,95 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
 
-interface AssessmentRow {
-  assessment_id: string;
+interface SubmissionRow {
   submission_id: string;
+  assessment_id: string | null;
   student_name: string;
   student_usn: string;
   session_name: string;
   reflection_text: string;
   char_count: number;
+  submitted_at: string;
   similarity_score: number;
   matched_keywords: string[];
   reference_score: number;
   original_ai_mark: number;
   final_approved_mark: number;
-  status: string;
+  status: string; // "COMPLETED" | "NEEDS_REVIEW" | "PENDING_EVALUATION"
   has_override: boolean;
 }
 
 export default function AssessmentReviewPage() {
   const router = useRouter();
-  const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
+
+  // View Reflection Modal State
+  const [viewModal, setViewModal] = useState<SubmissionRow | null>(null);
 
   // Grade Override Modal State
-  const [overrideModal, setOverrideModal] = useState<AssessmentRow | null>(null);
+  const [overrideModal, setOverrideModal] = useState<SubmissionRow | null>(null);
   const [overrideMark, setOverrideMark] = useState<number>(0);
   const [overrideReason, setOverrideReason] = useState("");
   const [savingOverride, setSavingOverride] = useState(false);
   const [overrideError, setOverrideError] = useState<string | null>(null);
 
   // Delete Submission Modal State
-  const [deleteTarget, setDeleteTarget] = useState<AssessmentRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SubmissionRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const fetchAssessments = async () => {
+  const fetchSubmissionsAndAssessments = async () => {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("assessments")
+    
+    // Select from submissions to ensure EVERY student submission is visible
+    const { data, error } = await supabase
+      .from("submissions")
       .select(`
-        id, similarity_score, matched_keywords, reference_score,
-        original_ai_mark, final_approved_mark, status,
-        submissions (
-          id, extracted_text, char_count,
-          profiles ( full_name, usn ),
-          sessions ( name )
-        ),
-        mark_overrides ( id )
+        id, session_id, student_id, extracted_text, char_count, status, submitted_at,
+        profiles ( full_name, usn ),
+        sessions ( name ),
+        assessments (
+          id, similarity_score, matched_keywords, reference_score,
+          original_ai_mark, final_approved_mark, status,
+          mark_overrides ( id )
+        )
       `)
-      .order("evaluated_at", { ascending: false });
+      .order("submitted_at", { ascending: false });
 
-    const formatted: AssessmentRow[] = (data || []).map((a: any) => {
-      const orig = Number(a.original_ai_mark || 0);
-      const fin = Number(a.final_approved_mark || 0);
-      const overrides = a.mark_overrides || [];
+    if (error) {
+      console.error("Error loading submissions:", error);
+      setLoading(false);
+      return;
+    }
+
+    const formatted: SubmissionRow[] = (data || []).map((s: any) => {
+      const a = Array.isArray(s.assessments) ? s.assessments[0] : s.assessments;
+      const orig = a ? Number(a.original_ai_mark || 0) : 0;
+      const fin = a ? Number(a.final_approved_mark || 0) : 0;
+      const overrides = a?.mark_overrides || [];
 
       return {
-        assessment_id: a.id,
-        submission_id: a.submissions?.id,
-        student_name: a.submissions?.profiles?.full_name || "Unknown Student",
-        student_usn: a.submissions?.profiles?.usn || "N/A",
-        session_name: a.submissions?.sessions?.name || "Session",
-        reflection_text: a.submissions?.extracted_text || "",
-        char_count: a.submissions?.char_count || 0,
-        similarity_score: a.similarity_score || 0,
-        matched_keywords: a.matched_keywords || [],
-        reference_score: a.reference_score || 0,
+        submission_id: s.id,
+        assessment_id: a?.id || null,
+        student_name: s.profiles?.full_name || "Unknown Student",
+        student_usn: s.profiles?.usn || "N/A",
+        session_name: s.sessions?.name || "Session",
+        reflection_text: s.extracted_text || "",
+        char_count: s.char_count || 0,
+        submitted_at: s.submitted_at ? new Date(s.submitted_at).toLocaleString() : "Recently",
+        similarity_score: a?.similarity_score || 0,
+        matched_keywords: a?.matched_keywords || [],
+        reference_score: a?.reference_score || 0,
         original_ai_mark: orig,
         final_approved_mark: fin,
-        status: a.status,
+        status: a ? a.status : "PENDING_EVALUATION",
         has_override: overrides.length > 0 || Math.abs(orig - fin) > 0.001,
       };
     });
 
-    setAssessments(formatted);
+    setSubmissions(formatted);
     setLoading(false);
   };
 
@@ -92,14 +107,41 @@ export default function AssessmentReviewPage() {
         router.push("/login");
         return;
       }
-      fetchAssessments();
+      fetchSubmissionsAndAssessments();
     }
     checkAuth();
   }, [router]);
 
+  const handleEvaluateSubmission = async (submissionId: string) => {
+    setEvaluatingId(submissionId);
+    try {
+      const resp = await fetch("/api/submissions/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId }),
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => null);
+        throw new Error(errJson?.error || "Evaluation failed.");
+      }
+
+      await fetchSubmissionsAndAssessments();
+    } catch (err: any) {
+      alert(err.message || "Could not evaluate submission.");
+    } finally {
+      setEvaluatingId(null);
+    }
+  };
+
   const handleApplyOverride = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overrideModal) return;
+
+    if (!overrideModal.assessment_id) {
+      setOverrideError("Please evaluate the submission before applying a mark override.");
+      return;
+    }
 
     if (overrideMark < 0 || overrideMark > 5) {
       setOverrideError("Mark must be between 0.00 and 5.00.");
@@ -147,7 +189,7 @@ export default function AssessmentReviewPage() {
 
       setOverrideModal(null);
       setOverrideReason("");
-      fetchAssessments();
+      fetchSubmissionsAndAssessments();
     } catch (err: any) {
       setOverrideError(err.message || "Failed to record mark override.");
     } finally {
@@ -164,7 +206,6 @@ export default function AssessmentReviewPage() {
     try {
       const supabase = createClient();
 
-      // Deleting the submission record cascades to assessments and mark_overrides
       const { error } = await supabase
         .from("submissions")
         .delete()
@@ -173,7 +214,10 @@ export default function AssessmentReviewPage() {
       if (error) throw new Error(error.message);
 
       setDeleteTarget(null);
-      fetchAssessments();
+      if (viewModal?.submission_id === deleteTarget.submission_id) {
+        setViewModal(null);
+      }
+      fetchSubmissionsAndAssessments();
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete submission.");
     } finally {
@@ -191,17 +235,17 @@ export default function AssessmentReviewPage() {
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/70 border border-cool-200 text-cool-900 mb-2">
           <span className="w-2 h-2 rounded-full bg-cool-500 animate-pulse" />
-          Academic Integrity & Audit Protocol
+          Academic Assessment & Submissions Review
         </div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Submissions & <span className="text-transparent bg-clip-text bg-gradient-to-r from-cool-600 via-indigo-600 to-peach-600">Assessment Audits</span>
+          Student Submissions & <span className="text-transparent bg-clip-text bg-gradient-to-r from-cool-600 via-indigo-600 to-peach-600">Evaluations</span>
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Review automated cosine similarity matchings, deterministic keyword matches (Mark = Score / 3), and execute professor overrides or deletions.
+          Inspect student reflection texts, review deterministic keyword scoring (Score / 3), run on-demand evaluations, or override final marks.
         </p>
       </motion.div>
 
-      {/* Table Card */}
+      {/* Submissions Table Card */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -211,14 +255,14 @@ export default function AssessmentReviewPage() {
           {loading ? (
             <div className="text-center py-16 text-slate-400 text-sm">
               <div className="w-8 h-8 mx-auto mb-3 border-2 border-cool-400 border-t-transparent rounded-full animate-spin" />
-              Loading submissions and evaluation metrics...
+              Loading student submissions and assessment records...
             </div>
-          ) : assessments.length === 0 ? (
+          ) : submissions.length === 0 ? (
             <div className="text-center py-16 text-slate-400 text-sm">
               <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              No assessments recorded yet. Submissions will appear here once processed.
+              No student submissions found. Submissions will appear here as soon as students submit.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -227,92 +271,108 @@ export default function AssessmentReviewPage() {
                   <tr className="bg-gradient-to-r from-slate-50 via-cool-50/40 to-slate-50 border-b border-slate-200/80 text-slate-600 uppercase tracking-wider font-bold text-[11px]">
                     <th className="py-4 px-5">Student</th>
                     <th className="py-4 px-4">Session</th>
-                    <th className="py-4 px-4">Cosine Similarity</th>
+                    <th className="py-4 px-4">Submitted At</th>
                     <th className="py-4 px-4">Keyword Score</th>
-                    <th className="py-4 px-4">Calculated Mark</th>
                     <th className="py-4 px-4">Approved Mark</th>
                     <th className="py-4 px-4">Status</th>
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/80">
-                  {assessments.map((a, i) => (
+                  {submissions.map((s, i) => (
                     <motion.tr
-                      key={a.assessment_id}
+                      key={s.submission_id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.04 }}
+                      transition={{ delay: i * 0.03 }}
                       className="hover:bg-cool-50/30 transition-colors"
                     >
                       <td className="py-3.5 px-5">
-                        <span className="font-bold text-slate-900 block">{a.student_name}</span>
-                        <span className="font-mono text-slate-400 text-[11px] block">{a.student_usn}</span>
+                        <span className="font-bold text-slate-900 block">{s.student_name}</span>
+                        <span className="font-mono text-slate-400 text-[11px] block">{s.student_usn}</span>
                       </td>
                       <td className="py-3.5 px-4 font-medium text-slate-700">
-                        {a.session_name}
+                        {s.session_name}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                            <div
-                              className="h-full bg-cool-500 rounded-full"
-                              style={{ width: `${Math.min(100, Math.round(a.similarity_score * 100))}%` }}
-                            />
-                          </div>
-                          <span>{(a.similarity_score * 100).toFixed(1)}%</span>
-                        </div>
+                      <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
+                        {s.submitted_at}
                       </td>
                       <td className="py-3.5 px-4 font-mono">
-                        <span className="px-2.5 py-1 rounded-lg bg-cool-50 border border-cool-200/80 text-cool-800 font-bold">
-                          {a.reference_score} / 15
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600 font-medium">
-                        {a.original_ai_mark.toFixed(2)}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 text-sm">
-                            {a.final_approved_mark.toFixed(2)}
+                        {s.assessment_id ? (
+                          <span className="px-2.5 py-1 rounded-lg bg-cool-50 border border-cool-200/80 text-cool-800 font-bold">
+                            {s.reference_score} / 15
                           </span>
-                          <span className="text-[10px] text-slate-400">/5.00</span>
-                          {a.has_override && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
-                              OVERRIDE
+                        ) : (
+                          <span className="text-slate-400 italic">Not evaluated</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono">
+                        {s.assessment_id ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 text-sm">
+                              {s.final_approved_mark.toFixed(2)}
                             </span>
-                          )}
-                        </div>
+                            <span className="text-[10px] text-slate-400">/5.00</span>
+                            {s.has_override && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                                OVERRIDE
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            a.status === "COMPLETED"
+                            s.status === "COMPLETED"
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : a.status === "NEEDS_REVIEW"
+                              : s.status === "NEEDS_REVIEW"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : "bg-cool-50 text-cool-700 border border-cool-200"
+                              : "bg-blue-50 text-blue-700 border border-blue-200"
                           }`}
                         >
-                          {a.status}
+                          {s.status === "PENDING_EVALUATION" ? "PENDING EVALUATION" : s.status}
                         </span>
                       </td>
                       <td className="py-3.5 px-5 text-right">
                         <div className="inline-flex items-center gap-1.5 justify-end">
                           <InteractiveButton
-                            onClick={() => {
-                              setOverrideModal(a);
-                              setOverrideMark(a.final_approved_mark);
-                              setOverrideReason("");
-                              setOverrideError(null);
-                            }}
-                            variant="outline"
+                            onClick={() => setViewModal(s)}
+                            variant="secondary"
                             size="sm"
                           >
-                            Override Mark
+                            View Submission
                           </InteractiveButton>
+
+                          {!s.assessment_id ? (
+                            <InteractiveButton
+                              onClick={() => handleEvaluateSubmission(s.submission_id)}
+                              variant="primary"
+                              size="sm"
+                              disabled={evaluatingId === s.submission_id}
+                            >
+                              {evaluatingId === s.submission_id ? "Evaluating..." : "⚡ Assess Now"}
+                            </InteractiveButton>
+                          ) : (
+                            <InteractiveButton
+                              onClick={() => {
+                                setOverrideModal(s);
+                                setOverrideMark(s.final_approved_mark);
+                                setOverrideReason("");
+                                setOverrideError(null);
+                              }}
+                              variant="outline"
+                              size="sm"
+                            >
+                              Override Mark
+                            </InteractiveButton>
+                          )}
+
                           <InteractiveButton
                             onClick={() => {
-                              setDeleteTarget(a);
+                              setDeleteTarget(s);
                               setDeleteError(null);
                             }}
                             variant="ghost"
@@ -331,6 +391,156 @@ export default function AssessmentReviewPage() {
           )}
         </GlowCard>
       </motion.div>
+
+      {/* VIEW SUBMISSION MODAL */}
+      <AnimatePresence>
+        {viewModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-cool-200/60 max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 text-cool-800 mb-1">
+                    Student Reflection Details
+                  </div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    {viewModal.student_name}
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono">
+                    USN: {viewModal.student_usn} • Session: {viewModal.session_name} • Submitted: {viewModal.submitted_at}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setViewModal(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Reflection Body Card */}
+              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                    Full Submitted Reflection Body
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {viewModal.char_count} / 500 characters
+                  </span>
+                </div>
+                <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans bg-white p-3.5 rounded-xl border border-slate-100">
+                  {viewModal.reflection_text}
+                </p>
+              </div>
+
+              {/* Assessment Stats or Evaluation Prompt */}
+              {viewModal.assessment_id ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-cool-50/80 p-3.5 rounded-xl border border-cool-200/80 text-center">
+                      <span className="text-[11px] font-bold uppercase text-cool-700 tracking-wider block">
+                        Matched Keywords
+                      </span>
+                      <span className="text-2xl font-black text-cool-900 font-mono">
+                        {viewModal.reference_score} / 15
+                      </span>
+                    </div>
+                    <div className="bg-peach-50/80 p-3.5 rounded-xl border border-peach-200/80 text-center">
+                      <span className="text-[11px] font-bold uppercase text-peach-700 tracking-wider block">
+                        Final Approved Mark
+                      </span>
+                      <span className="text-2xl font-black text-peach-900 font-mono">
+                        {viewModal.final_approved_mark.toFixed(2)} / 5.00
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block mb-1.5">
+                      Keywords Matched in Submission:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {viewModal.matched_keywords.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">No calibrated keywords matched.</span>
+                      ) : (
+                        viewModal.matched_keywords.map((kw, i) => (
+                          <span
+                            key={i}
+                            className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 text-cool-700 border border-cool-200 font-semibold"
+                          >
+                            ✓ {kw}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-2">
+                  <p className="text-xs font-bold text-amber-800">
+                    This submission is pending evaluation.
+                  </p>
+                  <InteractiveButton
+                    onClick={async () => {
+                      await handleEvaluateSubmission(viewModal.submission_id);
+                      setViewModal(null);
+                    }}
+                    variant="primary"
+                    size="sm"
+                    disabled={evaluatingId === viewModal.submission_id}
+                  >
+                    {evaluatingId === viewModal.submission_id ? "Evaluating..." : "⚡ Evaluate Reflection Now"}
+                  </InteractiveButton>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+                <InteractiveButton
+                  onClick={() => {
+                    setDeleteTarget(viewModal);
+                    setDeleteError(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                >
+                  Delete Submission
+                </InteractiveButton>
+
+                <div className="flex gap-2">
+                  {viewModal.assessment_id && (
+                    <InteractiveButton
+                      onClick={() => {
+                        setOverrideModal(viewModal);
+                        setOverrideMark(viewModal.final_approved_mark);
+                        setOverrideReason("");
+                        setOverrideError(null);
+                        setViewModal(null);
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Override Mark
+                    </InteractiveButton>
+                  )}
+                  <InteractiveButton
+                    onClick={() => setViewModal(null)}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Close
+                  </InteractiveButton>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* OVERRIDE MODAL */}
       <AnimatePresence>
@@ -372,43 +582,6 @@ export default function AssessmentReviewPage() {
                 </div>
               )}
 
-              {/* Reflection Content Card */}
-              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">
-                    Student Reflection Body
-                  </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {overrideModal.char_count} / 500 characters
-                  </span>
-                </div>
-                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-sans bg-white p-3 rounded-xl border border-slate-100">
-                  {overrideModal.reflection_text}
-                </p>
-              </div>
-
-              {/* Matched Keywords Pill Box */}
-              <div>
-                <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block mb-2">
-                  Deterministic Keyword Matches ({overrideModal.matched_keywords.length} of 15)
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {overrideModal.matched_keywords.length === 0 ? (
-                    <span className="text-xs text-slate-400 italic">No calibrated keywords matched in reflection.</span>
-                  ) : (
-                    overrideModal.matched_keywords.map((kw, i) => (
-                      <span
-                        key={i}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 text-cool-700 border border-cool-200 font-semibold flex items-center gap-1 shadow-xs"
-                      >
-                        <span className="text-cool-500 font-bold">✓</span> {kw}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Grade Adjustment Form */}
               <form onSubmit={handleApplyOverride} className="space-y-4 pt-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">

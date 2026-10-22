@@ -148,7 +148,7 @@ export default function SubmitReflectionPage() {
         throw new Error(`Reflection exceeds the 500-character limit (${finalBody.length} characters).`);
       }
 
-      const { error: subError } = await supabase
+      const { data: subData, error: subError } = await supabase
         .from("submissions")
         .insert({
           session_id: sessionId,
@@ -157,13 +157,26 @@ export default function SubmitReflectionPage() {
           extracted_text: finalBody,
           char_count: finalBody.length,
           status: "SUBMITTED",
-        });
+        })
+        .select("id")
+        .single();
 
       if (subError) {
         if (subError.code === "23505") {
           throw new Error("Duplicate submission rejected. Exactly one submission allowed per session.");
         }
         throw new Error(subError.message);
+      }
+
+      // Immediately trigger deterministic assessment evaluation
+      try {
+        await fetch("/api/submissions/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ submissionId: subData.id }),
+        });
+      } catch (evalErr) {
+        console.warn("Evaluation trigger notice:", evalErr);
       }
 
       router.push(`/student/results/${sessionId}`);

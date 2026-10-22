@@ -158,12 +158,8 @@ def run_e2e_assessment_flow():
 
     # 5. Student Submits Reflection
     print("\n[5] Student Submitting Reflection (<500 chars)...")
-    reflection_text = (
-        "We studied optimization, gradient descent, backpropagation to update weights. "
-        "We checked convergence across epochs with momentum and regularization. "
-        "Tuning hyperparameter minimized loss, with activation functions and stochastic "
-        "normalization across the loss landscape and weight decay."
-    )
+    # Dynamically compose reflection containing all 15 reference keywords to test maximum score
+    reflection_text = "Analysis report covering: " + " ".join(reference_keywords) + "."
     assert len(reflection_text) <= 500, "Must be under 500 characters"
 
     # Clean previous submissions for idempotent rerun
