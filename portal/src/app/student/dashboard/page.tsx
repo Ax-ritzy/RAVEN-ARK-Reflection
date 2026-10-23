@@ -55,18 +55,20 @@ export default function StudentDashboardPage() {
       setStudentUsn(profile.usn || "");
       setStudentName(profile.full_name);
 
-      const { data: sessionRows } = await supabase
-        .from("sessions")
-        .select("id, name, status, created_at")
-        .order("created_at", { ascending: false });
-
-      const { data: submissionRows } = await supabase
-        .from("submissions")
-        .select(`
+      // Concurrently fetch sessions and student's submissions in parallel
+      const [{ data: sessionRows }, { data: submissionRows }] = await Promise.all([
+        supabase
+          .from("sessions")
+          .select("id, name, status, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("submissions")
+          .select(`
           id, session_id, status, submitted_at,
           assessments ( final_approved_mark, reference_score, status )
         `)
-        .eq("student_id", profile.id);
+          .eq("student_id", profile.id),
+      ]);
 
       const subMap = new Map();
       if (submissionRows) {

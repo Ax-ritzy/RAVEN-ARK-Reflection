@@ -25,20 +25,22 @@ export default function ReportsExportPage() {
         return;
       }
 
-      const { data } = await supabase
-        .from("sessions")
-        .select("id, name, status")
-        .order("created_at", { ascending: false });
+      const [{ data }, { count }] = await Promise.all([
+        supabase
+          .from("sessions")
+          .select("id, name, status")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "STUDENT"),
+      ]);
 
       if (data && data.length > 0) {
         setSessions(data);
         setSelectedSessionId(data[0].id);
       }
 
-      const { count } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "STUDENT");
       setStudentCount(count || 0);
     }
     loadSessions();

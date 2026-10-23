@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import * as XLSX from "xlsx";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
 
@@ -154,7 +153,8 @@ export default function StudentManagementPage() {
   };
 
   // Download Sample Excel Template
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
     const sampleData = [
       ["Name", "USN", "Email ID", "Password"],
@@ -181,8 +181,9 @@ export default function StudentManagementPage() {
     setImportSummary(null);
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const XLSX = await import("xlsx");
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: "binary" });
         const firstSheetName = wb.SheetNames[0];

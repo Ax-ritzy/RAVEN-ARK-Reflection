@@ -57,26 +57,22 @@ export default function ProfessorDashboardPage() {
         return;
       }
 
-      const { count: studentCount } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "STUDENT");
-
-      const { data: sessions } = await supabase
-        .from("sessions")
-        .select("status");
+      // Concurrently query institutional telemetry metrics in parallel
+      const [
+        { count: studentCount },
+        { data: sessions },
+        { count: subCount },
+        { data: assessments },
+      ] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "STUDENT"),
+        supabase.from("sessions").select("status"),
+        supabase.from("submissions").select("id", { count: "exact", head: true }),
+        supabase.from("assessments").select("status, final_approved_mark"),
+      ]);
 
       const totalSess = sessions?.length || 0;
       const openSess = sessions?.filter((s) => s.status === "OPEN").length || 0;
       const closedSess = sessions?.filter((s) => s.status === "CLOSED").length || 0;
-
-      const { count: subCount } = await supabase
-        .from("submissions")
-        .select("id", { count: "exact", head: true });
-
-      const { data: assessments } = await supabase
-        .from("assessments")
-        .select("status, final_approved_mark");
 
       let completed = 0;
       let pending = 0;

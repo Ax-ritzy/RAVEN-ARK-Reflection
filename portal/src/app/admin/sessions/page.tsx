@@ -46,28 +46,25 @@ export default function SessionManagementPage() {
   const fetchSessions = async () => {
     const supabase = createClient();
     
-    const { data: sessData } = await supabase
-      .from("sessions")
-      .select("id, name, status, created_at")
-      .order("created_at", { ascending: false });
+    // Concurrently fetch sessions, references, submission counts, and mappings in parallel
+    const [
+      { data: sessData },
+      { data: refData },
+      { data: subCounts },
+      { data: sessRefs },
+    ] = await Promise.all([
+      supabase.from("sessions").select("id, name, status, created_at").order("created_at", { ascending: false }),
+      supabase.from("reference_materials").select("id, name"),
+      supabase.from("submissions").select("session_id"),
+      supabase.from("session_references").select("session_id, reference_id, reference_materials(name)"),
+    ]);
 
-    const { data: refData } = await supabase
-      .from("reference_materials")
-      .select("id, name");
     setAvailableReferences(refData || []);
-
-    const { data: subCounts } = await supabase
-      .from("submissions")
-      .select("session_id");
 
     const countMap = new Map();
     subCounts?.forEach((s: any) => {
       countMap.set(s.session_id, (countMap.get(s.session_id) || 0) + 1);
     });
-
-    const { data: sessRefs } = await supabase
-      .from("session_references")
-      .select("session_id, reference_id, reference_materials(name)");
 
     const refMap = new Map();
     const refIdMap = new Map();
