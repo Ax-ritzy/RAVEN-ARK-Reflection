@@ -473,13 +473,13 @@ export default function ReferenceLibraryPage() {
       {/* UPLOAD & AUTO-CALIBRATE REFERENCE MODAL */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="liquid-glass-backdrop">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-peach-200/60 dark:border-slate-800/80 max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto"
+              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
               <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
@@ -490,7 +490,7 @@ export default function ReferenceLibraryPage() {
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
                 >
                   ✕
                 </button>
@@ -620,13 +620,13 @@ export default function ReferenceLibraryPage() {
       {/* EDIT REFERENCE MODAL */}
       <AnimatePresence>
         {editReference && (
-          <div className="fixed inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="liquid-glass-backdrop">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-peach-200/60 dark:border-slate-800/80 max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto"
+              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
               <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
@@ -640,7 +640,7 @@ export default function ReferenceLibraryPage() {
                 </div>
                 <button
                   onClick={() => setEditReference(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
                 >
                   ✕
                 </button>
@@ -743,13 +743,13 @@ export default function ReferenceLibraryPage() {
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deleteTarget && (
-          <div className="fixed inset-0 bg-slate-950/70 dark:bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="liquid-glass-backdrop">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-rose-200 dark:border-rose-900/50 max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-800 dark:text-slate-100"
+              className="liquid-glass-modal max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-800 dark:text-slate-100"
             >
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-500 dark:text-rose-400 mb-2">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

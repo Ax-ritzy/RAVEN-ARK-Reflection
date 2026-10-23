@@ -37,7 +37,7 @@ export default function RootLayout({
           <CursorTracker />
 
           {/* Dynamic Glassmorphic Navigation */}
-          <header className="sticky top-0 z-50 px-4 py-3">
+          <header className="sticky top-0 z-30 px-4 py-3">
             <div className="max-w-7xl mx-auto rounded-2xl glass-panel px-5 h-16 flex items-center justify-between shadow-xl dark:shadow-2xl border border-slate-200/80 dark:border-slate-800/90 transition-all duration-300">
               {/* Logo Brand */}
               <a
@@ -142,10 +142,10 @@ export default function RootLayout({
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
               >
                 {children}
               </motion.div>
