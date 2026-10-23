@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -40,7 +41,7 @@ export default function RootLayout({
           <header className="sticky top-0 z-30 px-4 py-3">
             <div className="max-w-7xl mx-auto rounded-2xl glass-panel px-5 h-16 flex items-center justify-between shadow-xl dark:shadow-2xl border border-slate-200/80 dark:border-slate-800/90 transition-all duration-300">
               {/* Logo Brand */}
-              <a
+              <Link
                 href={isAdmin ? "/admin/dashboard" : isStudent ? "/student/dashboard" : "/login"}
                 className="flex items-center space-x-3 group"
               >
@@ -68,7 +69,7 @@ export default function RootLayout({
                     Academic Assessment System
                   </span>
                 </div>
-              </a>
+              </Link>
 
               {/* Nav Links & Controls */}
               <nav className="flex items-center space-x-1 sm:space-x-2 text-xs font-semibold">
@@ -84,9 +85,10 @@ export default function RootLayout({
                     ].map((tab) => {
                       const active = pathname === tab.href;
                       return (
-                        <a
+                        <Link
                           key={tab.href}
                           href={tab.href}
+                          prefetch={true}
                           className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
                             active
                               ? "text-slate-900 dark:text-white bg-peach-100/90 dark:bg-gradient-to-r dark:from-red-500/25 dark:via-pink-500/25 dark:to-purple-500/25 border border-peach-300 dark:border-pink-500/40 font-bold shadow-sm dark:shadow-md shadow-pink-500/10"
@@ -94,7 +96,7 @@ export default function RootLayout({
                           }`}
                         >
                           {tab.label}
-                        </a>
+                        </Link>
                       );
                     })}
                   </div>
@@ -102,12 +104,13 @@ export default function RootLayout({
 
                 {isStudent && (
                   <div className="flex items-center space-x-2">
-                    <a
+                    <Link
                       href="/student/dashboard"
+                      prefetch={true}
                       className="px-3.5 py-1.5 rounded-xl text-cool-600 dark:text-cyan-300 bg-cool-50 dark:bg-cyan-950/40 font-bold border border-cool-200 dark:border-cyan-500/30"
                     >
                       My Sessions
-                    </a>
+                    </Link>
                   </div>
                 )}
 
@@ -126,12 +129,12 @@ export default function RootLayout({
                     Sign Out
                   </motion.button>
                 ) : (
-                  <a
+                  <Link
                     href="/login"
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 hover:opacity-90 text-white shadow-md dark:shadow-lg shadow-pink-500/25 transition"
                   >
                     Sign In
-                  </a>
+                  </Link>
                 )}
               </nav>
             </div>

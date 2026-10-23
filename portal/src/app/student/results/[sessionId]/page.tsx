@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
@@ -114,9 +115,9 @@ export default function StudentResultsPage() {
     return (
       <GlowCard className="max-w-xl mx-auto p-8 text-center space-y-4">
         <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{errorMsg || "Unable to display result."}</p>
-        <a href="/student/dashboard" className="text-xs font-bold text-peach-600 dark:text-peach-400 hover:underline">
+        <Link href="/student/dashboard" prefetch={true} className="text-xs font-bold text-peach-600 dark:text-peach-400 hover:underline">
           &larr; Return to Dashboard
-        </a>
+        </Link>
       </GlowCard>
     );
   }
@@ -126,9 +127,9 @@ export default function StudentResultsPage() {
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <a href="/student/dashboard" className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:underline">
+          <Link href="/student/dashboard" prefetch={true} className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:underline">
             &larr; Back to Sessions
-          </a>
+          </Link>
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight mt-1">
             Reflection Evaluation
           </h1>

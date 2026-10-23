@@ -73,16 +73,13 @@ export default function ReferenceLibraryPage() {
   };
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const supabase = createClient();
+    fetchReferences();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
         router.push("/login");
-        return;
       }
-      fetchReferences();
-    }
-    checkAuth();
+    });
   }, [router]);
 
   // Automated Document Read & Non-AI 15-Keyword Extraction

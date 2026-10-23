@@ -17,33 +17,32 @@ export default function ReportsExportPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadSessions() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+    const supabase = createClient();
 
-      const [{ data }, { count }] = await Promise.all([
-        supabase
-          .from("sessions")
-          .select("id, name, status")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .eq("role", "STUDENT"),
-      ]);
-
+    // 1. Parallel session & count loading immediately
+    Promise.all([
+      supabase
+        .from("sessions")
+        .select("id, name, status")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "STUDENT"),
+    ]).then(([{ data }, { count }]) => {
       if (data && data.length > 0) {
         setSessions(data);
         setSelectedSessionId(data[0].id);
       }
-
       setStudentCount(count || 0);
-    }
-    loadSessions();
+    });
+
+    // 2. Fast synchronous session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push("/login");
+      }
+    });
   }, [router]);
 
   const handleExportSessionSheet = async () => {

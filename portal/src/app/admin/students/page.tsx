@@ -93,16 +93,13 @@ export default function StudentManagementPage() {
   };
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const supabase = createClient();
+    fetchStudents();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
         router.push("/login");
-        return;
       }
-      fetchStudents();
-    }
-    checkAuth();
+    });
   }, [router]);
 
   // Single Student Creation

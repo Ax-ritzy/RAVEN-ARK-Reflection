@@ -101,16 +101,13 @@ export default function AssessmentReviewPage() {
   };
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const supabase = createClient();
+    fetchSubmissionsAndAssessments();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
         router.push("/login");
-        return;
       }
-      fetchSubmissionsAndAssessments();
-    }
-    checkAuth();
+    });
   }, [router]);
 
   const handleEvaluateSubmission = async (submissionId: string, forceQwen: boolean = true) => {

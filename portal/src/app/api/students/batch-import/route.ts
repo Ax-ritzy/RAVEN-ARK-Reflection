@@ -15,6 +15,11 @@ async function verifyProfessorCaller(req: NextRequest) {
     return { error: "Unauthorized caller", status: 401 };
   }
 
+  // Fast path: User metadata contains role (saves 1 round-trip)
+  if (user.user_metadata?.role === "PROFESSOR" || user.app_metadata?.role === "PROFESSOR") {
+    return { admin, user };
+  }
+
   const { data: callerProfile } = await admin
     .from("profiles")
     .select("role")

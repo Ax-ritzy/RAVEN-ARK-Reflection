@@ -15,6 +15,11 @@ async function verifyProfessorCaller(req: NextRequest) {
     return { error: "Unauthorized caller", status: 401 };
   }
 
+  // Fast path: User metadata contains role (saves 1 round-trip)
+  if (user.user_metadata?.role === "PROFESSOR" || user.app_metadata?.role === "PROFESSOR") {
+    return { admin, user };
+  }
+
   const { data: callerProfile } = await admin
     .from("profiles")
     .select("role")
@@ -244,13 +249,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: Cannot delete non-student accounts" }, { status: 403 });
     }
 
-    // If student has an auth_user_id, delete via Supabase Admin API
+    // If student has an auth_user_id, delete via Supabase Admin API (cascades in DB)
     if (profile.auth_user_id) {
       await admin.auth.admin.deleteUser(profile.auth_user_id);
+    } else {
+      await admin.from("profiles").delete().eq("id", studentId);
     }
-
-    // Also delete profile row explicitly in case auth_user_id was null or already deleted
-    await admin.from("profiles").delete().eq("id", studentId);
 
     return NextResponse.json({
       success: true,

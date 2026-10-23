@@ -94,16 +94,13 @@ export default function SessionManagementPage() {
   };
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const supabase = createClient();
+    fetchSessions();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
         router.push("/login");
-        return;
       }
-      fetchSessions();
-    }
-    checkAuth();
+    });
   }, [router]);
 
   const handleCreateSession = async (e: React.FormEvent) => {
