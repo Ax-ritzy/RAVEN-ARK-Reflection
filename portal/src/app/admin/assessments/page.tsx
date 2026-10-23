@@ -234,19 +234,19 @@ export default function AssessmentReviewPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/70 border border-cool-200 text-cool-900">
-            <span className="w-2 h-2 rounded-full bg-cool-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/70 dark:bg-red-950/40 border border-cool-200 dark:border-red-500/30 text-cool-900 dark:text-red-300">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             Academic Assessment & Submissions Review
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-800">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             🤖 Ollama Qwen 3.5:9B Active
           </div>
         </div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Student Submissions & <span className="text-transparent bg-clip-text bg-gradient-to-r from-cool-600 via-indigo-600 to-peach-600">Evaluations</span>
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Student Submissions & <span className="gradient-text-flame">Evaluations</span>
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Inspect student reflections, review automated Qwen 3.5 semantic scoring (Score / 3), trigger on-demand AI assessments, and record audited manual overrides.
         </p>
       </motion.div>
@@ -260,12 +260,12 @@ export default function AssessmentReviewPage() {
         <GlowCard glowColor="cool" className="overflow-hidden p-0">
           {loading ? (
             <div className="text-center py-16 text-slate-400 text-sm">
-              <div className="w-8 h-8 mx-auto mb-3 border-2 border-cool-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 mx-auto mb-3 border-2 border-cool-400 dark:border-cyan-400 border-t-transparent rounded-full animate-spin" />
               Loading student submissions and assessment records...
             </div>
           ) : submissions.length === 0 ? (
             <div className="text-center py-16 text-slate-400 text-sm">
-              <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               No student submissions found. Submissions will appear here as soon as students submit.
@@ -274,7 +274,7 @@ export default function AssessmentReviewPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 via-cool-50/40 to-slate-50 border-b border-slate-200/80 text-slate-600 uppercase tracking-wider font-bold text-[11px]">
+                  <tr className="bg-slate-100/80 dark:bg-slate-950/60 border-b border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold text-[11px]">
                     <th className="py-4 px-5">Student</th>
                     <th className="py-4 px-4">Session</th>
                     <th className="py-4 px-4">Submitted At</th>
@@ -284,28 +284,28 @@ export default function AssessmentReviewPage() {
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/80">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {submissions.map((s, i) => (
                     <motion.tr
                       key={s.submission_id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 }}
-                      className="hover:bg-cool-50/30 transition-colors"
+                      className="hover:bg-slate-100/50 dark:hover:bg-slate-900/40 transition-colors"
                     >
                       <td className="py-3.5 px-5">
-                        <span className="font-bold text-slate-900 block">{s.student_name}</span>
-                        <span className="font-mono text-slate-400 text-[11px] block">{s.student_usn}</span>
+                        <span className="font-bold text-slate-900 dark:text-white block">{s.student_name}</span>
+                        <span className="font-mono text-slate-400 dark:text-slate-500 text-[11px] block">{s.student_usn}</span>
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-700">
+                      <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
                         {s.session_name}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
+                      <td className="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400 text-[11px]">
                         {s.submitted_at}
                       </td>
                       <td className="py-3.5 px-4 font-mono">
                         {s.assessment_id ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-cool-50 border border-cool-200/80 text-cool-800 font-bold">
+                          <span className="px-2.5 py-1 rounded-lg bg-cool-50 dark:bg-cyan-950/40 border border-cool-200/80 dark:border-cyan-500/30 text-cool-800 dark:text-cyan-300 font-bold">
                             {s.reference_score} / 15
                           </span>
                         ) : (
@@ -315,12 +315,12 @@ export default function AssessmentReviewPage() {
                       <td className="py-3.5 px-4 font-mono">
                         {s.assessment_id ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-slate-900 text-sm">
+                            <span className="font-bold text-slate-900 dark:text-white text-sm">
                               {s.final_approved_mark.toFixed(2)}
                             </span>
                             <span className="text-[10px] text-slate-400">/5.00</span>
                             {s.has_override && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
                                 OVERRIDE
                               </span>
                             )}
@@ -333,10 +333,10 @@ export default function AssessmentReviewPage() {
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             s.status === "COMPLETED"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
                               : s.status === "NEEDS_REVIEW"
-                              ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : "bg-blue-50 text-blue-700 border border-blue-200"
+                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30"
+                              : "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30"
                           }`}
                         >
                           {s.status === "PENDING_EVALUATION" ? "PENDING EVALUATION" : s.status}
@@ -410,45 +410,45 @@ export default function AssessmentReviewPage() {
       {/* VIEW SUBMISSION MODAL */}
       <AnimatePresence>
         {viewModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-cool-200/60 max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
-              <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 text-cool-800 mb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
                     Student Reflection Details
                   </div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                     {viewModal.student_name}
                   </h2>
-                  <p className="text-xs text-slate-400 font-mono">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     USN: {viewModal.student_usn} • Session: {viewModal.session_name} • Submitted: {viewModal.submitted_at}
                   </p>
                 </div>
                 <button
                   onClick={() => setViewModal(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Reflection Body Card */}
-              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
+              <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                  <span className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 tracking-wider">
                     Full Submitted Reflection Body
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">
                     {viewModal.char_count} / 500 characters
                   </span>
                 </div>
-                <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans bg-white p-3.5 rounded-xl border border-slate-100">
+                <p className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-sans bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
                   {viewModal.reflection_text}
                 </p>
               </div>
@@ -457,26 +457,26 @@ export default function AssessmentReviewPage() {
               {viewModal.assessment_id ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-cool-50/80 p-3.5 rounded-xl border border-cool-200/80 text-center">
-                      <span className="text-[11px] font-bold uppercase text-cool-700 tracking-wider block">
+                    <div className="bg-cool-50/80 dark:bg-cyan-950/40 p-3.5 rounded-xl border border-cool-200 dark:border-cyan-500/30 text-center">
+                      <span className="text-[11px] font-bold uppercase text-cool-700 dark:text-cyan-400 tracking-wider block">
                         Matched Keywords
                       </span>
-                      <span className="text-2xl font-black text-cool-900 font-mono">
+                      <span className="text-2xl font-black text-cool-900 dark:text-cyan-300 font-mono">
                         {viewModal.reference_score} / 15
                       </span>
                     </div>
-                    <div className="bg-peach-50/80 p-3.5 rounded-xl border border-peach-200/80 text-center">
-                      <span className="text-[11px] font-bold uppercase text-peach-700 tracking-wider block">
+                    <div className="bg-peach-50/80 dark:bg-pink-950/40 p-3.5 rounded-xl border border-peach-200 dark:border-pink-500/30 text-center">
+                      <span className="text-[11px] font-bold uppercase text-peach-700 dark:text-pink-400 tracking-wider block">
                         Final Approved Mark
                       </span>
-                      <span className="text-2xl font-black text-peach-900 font-mono">
+                      <span className="text-2xl font-black text-peach-900 dark:text-pink-300 font-mono">
                         {viewModal.final_approved_mark.toFixed(2)} / 5.00
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block mb-1.5">
+                    <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block mb-1.5">
                       Keywords Matched in Submission:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -486,7 +486,7 @@ export default function AssessmentReviewPage() {
                         viewModal.matched_keywords.map((kw, i) => (
                           <span
                             key={i}
-                            className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 text-cool-700 border border-cool-200 font-semibold"
+                            className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 dark:bg-cyan-950/40 text-cool-700 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30 font-semibold"
                           >
                             ✓ {kw}
                           </span>
@@ -496,8 +496,8 @@ export default function AssessmentReviewPage() {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-2">
-                  <p className="text-xs font-bold text-amber-800">
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-center space-y-2">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
                     This submission is pending evaluation.
                   </p>
                   <InteractiveButton
@@ -514,7 +514,7 @@ export default function AssessmentReviewPage() {
                 </div>
               )}
 
-              <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -523,7 +523,7 @@ export default function AssessmentReviewPage() {
                     setDeleteTarget(viewModal);
                     setDeleteError(null);
                   }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
                 >
                   Delete Submission
                 </button>
@@ -574,20 +574,20 @@ export default function AssessmentReviewPage() {
       {/* OVERRIDE MODAL */}
       <AnimatePresence>
         {overrideModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-cool-200/60 max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
-              <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 text-cool-800 mb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
                     Audited Evaluation Override
                   </div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                     {overrideModal.student_name}
                   </h2>
                   <p className="text-xs text-slate-400 font-mono">
@@ -596,15 +596,15 @@ export default function AssessmentReviewPage() {
                 </div>
                 <button
                   onClick={() => setOverrideModal(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition"
                 >
                   ✕
                 </button>
               </div>
 
               {overrideError && (
-                <div className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <span>{overrideError}</span>
@@ -613,18 +613,18 @@ export default function AssessmentReviewPage() {
 
               <form onSubmit={handleApplyOverride} className="space-y-4 pt-2">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1">
+                  <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide block mb-1">
                       Calculated AI Mark
                     </span>
-                    <span className="text-xl font-extrabold text-slate-800 font-mono">
+                    <span className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
                       {overrideModal.original_ai_mark.toFixed(2)}
                       <span className="text-xs text-slate-400 font-normal ml-1">/ 5.00</span>
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                       New Approved Mark (/5.00)
                     </label>
                     <input
@@ -635,13 +635,13 @@ export default function AssessmentReviewPage() {
                       required
                       value={overrideMark}
                       onChange={(e) => setOverrideMark(parseFloat(e.target.value) || 0)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-extrabold font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-cool-400 focus:border-cool-400 focus:outline-none transition"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-base font-extrabold font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Mandatory Audit Reason (Required for Record)
                   </label>
                   <textarea
@@ -650,11 +650,11 @@ export default function AssessmentReviewPage() {
                     value={overrideReason}
                     onChange={(e) => setOverrideReason(e.target.value)}
                     placeholder="Document specific justification for adjusting deterministic score..."
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition leading-relaxed"
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition leading-relaxed"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                   <InteractiveButton
                     type="button"
                     variant="outline"

@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { useTheme } from "./ThemeProvider";
 
 export default function CursorTracker() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [isHovered, setIsHovered] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -81,9 +84,13 @@ export default function CursorTracker() {
           translateY: "-50%",
           width: isHovered ? 260 : 180,
           height: isHovered ? 260 : 180,
-          background: isHovered
-            ? "radial-gradient(circle, rgba(236, 72, 153, 0.16) 0%, rgba(6, 182, 212, 0.12) 40%, rgba(139, 92, 246, 0.08) 70%, transparent 100%)"
-            : "radial-gradient(circle, rgba(239, 68, 68, 0.12) 0%, rgba(6, 182, 212, 0.08) 45%, transparent 70%)",
+          background: isDark
+            ? isHovered
+              ? "radial-gradient(circle, rgba(236, 72, 153, 0.16) 0%, rgba(6, 182, 212, 0.12) 40%, rgba(139, 92, 246, 0.08) 70%, transparent 100%)"
+              : "radial-gradient(circle, rgba(239, 68, 68, 0.12) 0%, rgba(6, 182, 212, 0.08) 45%, transparent 70%)"
+            : isHovered
+            ? "radial-gradient(circle, rgba(253, 147, 110, 0.18) 0%, rgba(56, 189, 248, 0.12) 45%, transparent 70%)"
+            : "radial-gradient(circle, rgba(253, 147, 110, 0.10) 0%, rgba(56, 189, 248, 0.06) 50%, transparent 70%)",
           filter: "blur(20px)",
           transition: "width 0.3s ease, height 0.3s ease",
         }}
@@ -109,8 +116,18 @@ export default function CursorTracker() {
           rotate: { duration: 3, repeat: Infinity, ease: "linear" },
         }}
       >
-        <div className="w-full h-full rounded-full p-[1.5px] bg-gradient-to-r from-red-500 via-pink-500 via-purple-500 to-cyan-400 opacity-80 shadow-[0_0_18px_rgba(236,72,153,0.5)]">
-          <div className="w-full h-full rounded-full bg-slate-950/40 backdrop-blur-[2px]" />
+        <div
+          className={`w-full h-full rounded-full p-[1.5px] transition-all duration-300 ${
+            isDark
+              ? "bg-gradient-to-r from-red-500 via-pink-500 via-purple-500 to-cyan-400 opacity-80 shadow-[0_0_18px_rgba(236,72,153,0.5)]"
+              : "bg-gradient-to-r from-peach-500 via-lavender-500 to-cool-500 opacity-75 shadow-[0_0_12px_rgba(253,147,110,0.4)]"
+          }`}
+        >
+          <div
+            className={`w-full h-full rounded-full backdrop-blur-[2px] ${
+              isDark ? "bg-slate-950/40" : "bg-white/50"
+            }`}
+          />
         </div>
       </motion.div>
 
@@ -130,7 +147,13 @@ export default function CursorTracker() {
         }}
         transition={{ type: "spring", stiffness: 500, damping: 25 }}
       >
-        <div className="w-full h-full rounded-full bg-gradient-to-tr from-cyan-400 via-pink-400 to-red-400 shadow-[0_0_10px_#06b6d4,0_0_15px_#ec4899]" />
+        <div
+          className={`w-full h-full rounded-full transition-all duration-300 ${
+            isDark
+              ? "bg-gradient-to-tr from-cyan-400 via-pink-400 to-red-400 shadow-[0_0_10px_#06b6d4,0_0_15px_#ec4899]"
+              : "bg-gradient-to-tr from-peach-500 to-cool-500 shadow-[0_0_8px_rgba(253,147,110,0.7)]"
+          }`}
+        />
       </motion.div>
     </div>
   );

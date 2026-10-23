@@ -103,7 +103,7 @@ export default function StudentResultsPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-20 text-slate-400 text-sm">
+      <div className="text-center py-20 text-slate-400 dark:text-slate-500 text-sm">
         <div className="w-8 h-8 border-2 border-peach-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         Retrieving authoritative evaluation...
       </div>
@@ -113,8 +113,8 @@ export default function StudentResultsPage() {
   if (errorMsg || !result) {
     return (
       <GlowCard className="max-w-xl mx-auto p-8 text-center space-y-4">
-        <p className="text-sm font-semibold text-rose-600">{errorMsg || "Unable to display result."}</p>
-        <a href="/student/dashboard" className="text-xs font-bold text-peach-600 hover:underline">
+        <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{errorMsg || "Unable to display result."}</p>
+        <a href="/student/dashboard" className="text-xs font-bold text-peach-600 dark:text-peach-400 hover:underline">
           &larr; Return to Dashboard
         </a>
       </GlowCard>
@@ -126,29 +126,29 @@ export default function StudentResultsPage() {
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <a href="/student/dashboard" className="text-xs font-semibold text-peach-600 hover:underline">
+          <a href="/student/dashboard" className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:underline">
             &larr; Back to Sessions
           </a>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight mt-1">
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight mt-1">
             Reflection Evaluation
           </h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Session: <span className="font-bold text-slate-700">{result.sessionName}</span>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Session: <span className="font-bold text-slate-700 dark:text-slate-200">{result.sessionName}</span>
           </p>
         </div>
         <div className="text-right self-start sm:self-auto">
           <span
             className={`text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider ${
               result.assessmentStatus === "COMPLETED"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50"
                 : result.assessmentStatus === "NEEDS_REVIEW"
-                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                : "bg-blue-50 text-blue-700 border border-blue-200"
+                ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50"
+                : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
             }`}
           >
             {result.assessmentStatus}
           </span>
-          <p className="text-[11px] text-slate-400 mt-1 font-mono">{result.submittedAt}</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono">{result.submittedAt}</p>
         </div>
       </div>
 
@@ -156,17 +156,17 @@ export default function StudentResultsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Final Approved Mark */}
         <GlowCard glowColor="peach" className="p-7">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Final Session Mark
           </span>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-5xl font-black gradient-text-peach-cool">
+            <span className="text-5xl font-black gradient-text-flame">
               {result.assessmentStatus === "COMPLETED" ? result.finalApprovedMark.toFixed(2) : "—"}
             </span>
-            <span className="text-base text-slate-400 font-bold">/ 5.00</span>
+            <span className="text-base text-slate-400 dark:text-slate-500 font-bold">/ 5.00</span>
           </div>
           {result.hasOverride && (
-            <div className="mt-3 text-[11px] font-medium text-purple-700 bg-purple-50/80 p-2.5 rounded-xl border border-purple-200/60">
+            <div className="mt-3 text-[11px] font-medium text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200/60 dark:border-purple-800/50">
               Note: Professor grade override applied (Original AI: {result.originalAiMark.toFixed(2)}/5.00)
             </div>
           )}
@@ -174,16 +174,16 @@ export default function StudentResultsPage() {
 
         {/* Reference Score */}
         <GlowCard glowColor="cool" className="p-7">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Reference Score (15 Keywords)
           </span>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-5xl font-black text-cool-500">
+            <span className="text-5xl font-black text-cool-500 dark:text-cyan-400">
               {result.assessmentStatus === "COMPLETED" ? result.referenceScore : "—"}
             </span>
-            <span className="text-base text-slate-400 font-bold">/ 15</span>
+            <span className="text-base text-slate-400 dark:text-slate-500 font-bold">/ 15</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-3 font-mono">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3 font-mono">
             Deterministic Formula: Mark = Keyword Score ÷ 3.0
           </p>
         </GlowCard>
@@ -192,7 +192,7 @@ export default function StudentResultsPage() {
       {/* Matched Keywords Grid */}
       {result.matchedKeywords.length > 0 && (
         <GlowCard className="p-6">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
             Matched Keywords ({result.matchedKeywords.length} of 15)
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -200,7 +200,7 @@ export default function StudentResultsPage() {
               <motion.span
                 key={i}
                 whileHover={{ scale: 1.08 }}
-                className="text-xs px-3 py-1.5 rounded-xl bg-gradient-to-r from-peach-50 to-cool-50 text-slate-800 font-semibold border border-peach-200/80 shadow-sm cursor-default"
+                className="text-xs px-3 py-1.5 rounded-xl bg-gradient-to-r from-peach-50 to-cool-50 dark:from-slate-800/80 dark:to-slate-800/60 text-slate-800 dark:text-slate-100 font-semibold border border-peach-200/80 dark:border-slate-700 shadow-sm cursor-default"
               >
                 ✓ {kw}
               </motion.span>
@@ -212,14 +212,14 @@ export default function StudentResultsPage() {
       {/* Submitted Text */}
       <GlowCard className="p-6">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Your Submitted Body
           </h3>
-          <span className="text-xs font-mono text-slate-400 font-semibold">
+          <span className="text-xs font-mono text-slate-400 dark:text-slate-500 font-semibold">
             {result.charCount} / 500 characters
           </span>
         </div>
-        <div className="bg-white/70 p-4 rounded-xl border text-xs text-slate-800 whitespace-pre-wrap font-mono leading-relaxed">
+        <div className="bg-white/70 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-mono leading-relaxed">
           {result.extractedText}
         </div>
       </GlowCard>

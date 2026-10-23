@@ -34,13 +34,13 @@ export default function InteractiveButton({
     primary:
       "bg-gradient-to-r from-red-500 via-pink-500 via-purple-600 to-cyan-500 text-white shadow-lg shadow-pink-500/20 hover:shadow-cyan-500/30 hover:brightness-110",
     secondary:
-      "bg-slate-900/90 text-slate-200 border border-slate-800 hover:bg-slate-800/90 hover:border-pink-500/50 hover:text-white shadow-md shadow-black/40",
+      "bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/90 hover:border-pink-500/50 hover:text-slate-900 dark:hover:text-white shadow-sm dark:shadow-md",
     accent:
       "bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-pink-500/30 hover:brightness-110",
     ghost:
-      "bg-transparent text-slate-400 hover:text-white hover:bg-slate-800/60",
+      "bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60",
     outline:
-      "bg-slate-900/50 text-slate-300 border border-slate-800 hover:border-cyan-400 hover:bg-cyan-950/20 hover:text-cyan-300 shadow-sm",
+      "bg-white/70 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 hover:bg-cyan-50/70 dark:hover:bg-cyan-950/20 hover:text-cyan-700 dark:hover:text-cyan-300 shadow-sm",
   };
 
   return (

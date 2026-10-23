@@ -192,7 +192,7 @@ export default function SubmitReflectionPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-20 text-slate-400 text-sm">
+      <div className="text-center py-20 text-slate-400 dark:text-slate-500 text-sm">
         <div className="w-8 h-8 border-2 border-peach-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         Verifying student eligibility...
       </div>
@@ -205,15 +205,15 @@ export default function SubmitReflectionPage() {
         <div className="mb-6 space-y-2">
           <a
             href="/student/dashboard"
-            className="text-xs font-semibold text-peach-600 hover:text-peach-700 transition inline-flex items-center gap-1"
+            className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:text-peach-700 dark:hover:text-peach-300 transition inline-flex items-center gap-1"
           >
             &larr; Back to Sessions
           </a>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight">
             Submit Reflection
           </h1>
-          <p className="text-xs text-slate-500">
-            Session: <span className="font-bold text-slate-700">{sessionName}</span>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Session: <span className="font-bold text-slate-700 dark:text-slate-200">{sessionName}</span>
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export default function SubmitReflectionPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-4 mb-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+            className="p-4 mb-6 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold"
           >
             ⚠️ {errorMsg}
           </motion.div>
@@ -230,17 +230,17 @@ export default function SubmitReflectionPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Upload Drop Area */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
               Upload Document (TXT, DOCX, or PDF)
             </label>
-            <div className="border-2 border-dashed border-peach-200 hover:border-peach-400 rounded-2xl p-6 text-center transition-all bg-peach-50/30 hover:bg-peach-50/60 cursor-pointer group">
+            <div className="border-2 border-dashed border-peach-200 dark:border-slate-700 hover:border-peach-400 dark:hover:border-cyan-400 rounded-2xl p-6 text-center transition-all bg-peach-50/30 dark:bg-slate-900/40 hover:bg-peach-50/60 dark:hover:bg-slate-900/70 cursor-pointer group">
               <input
                 type="file"
                 accept=".txt,.docx,.pdf"
                 onChange={handleFileChange}
-                className="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
+                className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
               />
-              <p className="text-[11px] text-slate-400 mt-2">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
                 Text is safely extracted and strictly checked against the 500-character maximum.
               </p>
             </div>
@@ -249,14 +249,14 @@ export default function SubmitReflectionPage() {
           {/* Text Area */}
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs font-bold">
-              <label className="uppercase tracking-wider text-slate-600">
+              <label className="uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 Or Type Reflection Directly
               </label>
               <span
                 className={`font-mono px-2.5 py-0.5 rounded-full ${
                   isOverLimit
-                    ? "bg-rose-100 text-rose-700 font-extrabold"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 font-extrabold"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                 }`}
               >
                 {currentChars} / {MAX_CHARS}
@@ -264,7 +264,7 @@ export default function SubmitReflectionPage() {
             </div>
 
             {/* Visual Character Progress Bar */}
-            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
               <motion.div
                 className={`h-full ${
                   isOverLimit
@@ -283,8 +283,8 @@ export default function SubmitReflectionPage() {
               placeholder="Synthesize the core concepts covered in today's reflection (maximum 500 characters)..."
               className={`w-full p-4 rounded-2xl border text-sm font-sans focus:outline-none transition-all shadow-sm ${
                 isOverLimit
-                  ? "border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/20"
-                  : "border-slate-200 focus:ring-2 focus:ring-peach-400 bg-white/80"
+                  ? "border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/20 dark:bg-rose-950/20 text-slate-900 dark:text-slate-100"
+                  : "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-peach-400 bg-white/80 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               }`}
             />
           </div>

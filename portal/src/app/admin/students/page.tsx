@@ -425,14 +425,14 @@ export default function StudentManagementPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-950/40 border border-red-500/30 text-red-300 mb-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-cool-100/80 dark:bg-red-950/40 border border-cool-200 dark:border-red-500/30 text-cool-900 dark:text-red-300 mb-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse" />
             Institutional Roster Management
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Student Roster & <span className="gradient-text-flame">Access Control</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Register students individually or import via Excel spreadsheets with auto-credentials.
           </p>
         </div>
@@ -447,9 +447,9 @@ export default function StudentManagementPage() {
               setImportSummary(null);
             }}
             variant="outline"
-            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/40 font-bold"
+            className="border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold"
             icon={
-              <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             }
@@ -483,19 +483,19 @@ export default function StudentManagementPage() {
             exit={{ opacity: 0, y: -10 }}
             className={`p-4 rounded-2xl border text-xs flex items-center justify-between gap-3 shadow-sm ${
               notification.type === "success"
-                ? "bg-emerald-950/60 border-emerald-500/30 text-emerald-200"
-                : "bg-rose-950/60 border-rose-500/30 text-rose-200"
+                ? "bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                : "bg-rose-50/90 dark:bg-rose-950/60 border-rose-200 dark:border-rose-500/30 text-rose-900 dark:text-rose-200"
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs">
+              <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
                 ✓
               </span>
               <span className="font-medium">{notification.message}</span>
             </div>
             <button
               onClick={() => setNotification(null)}
-              className="text-slate-400 hover:text-white font-bold px-2 py-1 text-sm"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold px-2 py-1 text-sm"
             >
               ✕
             </button>
@@ -510,7 +510,7 @@ export default function StudentManagementPage() {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <GlowCard glowColor="cyan" className="overflow-hidden p-0">
-          <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 sm:p-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-sm">
               <svg className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -520,17 +520,17 @@ export default function StudentManagementPage() {
                 placeholder="Search by student name or USN..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-slate-800 rounded-xl text-xs bg-slate-950/80 text-slate-200 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 focus:outline-none transition"
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-950/80 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 focus:outline-none transition"
               />
             </div>
-            <div className="text-xs text-slate-400 font-medium">
-              Showing <span className="font-bold text-slate-200">{filtered.length}</span> of {students.length} students
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Showing <span className="font-bold text-slate-800 dark:text-slate-200">{filtered.length}</span> of {students.length} students
             </div>
           </div>
 
           {loading ? (
             <div className="text-center py-16 text-slate-400 text-sm">
-              <div className="w-8 h-8 mx-auto mb-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 mx-auto mb-3 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
               Loading student roster...
             </div>
           ) : filtered.length === 0 ? (
@@ -541,7 +541,7 @@ export default function StudentManagementPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold text-[11px]">
+                  <tr className="bg-slate-100/70 dark:bg-slate-950/60 border-b border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold text-[11px]">
                     <th className="py-4 px-6">Student Name</th>
                     <th className="py-4 px-6">USN</th>
                     <th className="py-4 px-6">Status</th>
@@ -549,30 +549,30 @@ export default function StudentManagementPage() {
                     <th className="py-4 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium text-slate-300">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
                   {filtered.map((s) => (
                     <motion.tr
                       key={s.id}
-                      whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.03)" }}
+                      whileHover={{ backgroundColor: "rgba(100, 116, 139, 0.05)" }}
                       className="transition-colors group"
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-500/20 via-pink-500/20 to-cyan-500/20 border border-pink-500/30 text-pink-300 flex items-center justify-center font-bold text-xs shadow-sm">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-peach-100 via-pink-100 to-cool-100 dark:from-red-500/20 dark:via-pink-500/20 dark:to-cyan-500/20 border border-peach-200 dark:border-pink-500/30 text-peach-800 dark:text-pink-300 flex items-center justify-center font-bold text-xs shadow-sm">
                             {s.full_name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-bold text-white group-hover:text-cyan-300 transition">
+                            <span className="font-bold text-slate-900 dark:text-white group-hover:text-cool-600 dark:group-hover:text-cyan-300 transition">
                               {s.full_name}
                             </span>
-                            <span className="block text-[10px] text-slate-500 font-mono">
+                            <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                               ID: {s.id.slice(0, 8)}...
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="font-mono px-2 py-0.5 rounded-md bg-slate-900 text-cyan-300 font-bold border border-slate-800 text-[11px]">
+                        <span className="font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-cyan-300 font-bold border border-slate-200 dark:border-slate-800 text-[11px]">
                           {s.usn || "N/A"}
                         </span>
                       </td>
@@ -581,16 +581,16 @@ export default function StudentManagementPage() {
                           onClick={() => toggleStatus(s.id, s.status)}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition ${
                             s.status === "ACTIVE"
-                              ? "bg-emerald-950/50 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-900/40"
-                              : "bg-rose-950/50 text-rose-300 border border-rose-500/30 hover:bg-rose-900/40"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                              : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-900/40"
                           }`}
                           title="Click to toggle status"
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === "ACTIVE" ? "bg-emerald-400" : "bg-rose-400"}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === "ACTIVE" ? "bg-emerald-500 dark:bg-emerald-400" : "bg-rose-500 dark:bg-rose-400"}`} />
                           {s.status}
                         </button>
                       </td>
-                      <td className="py-4 px-6 text-slate-400 text-[11px]">
+                      <td className="py-4 px-6 text-slate-500 dark:text-slate-400 text-[11px]">
                         {new Date(s.created_at).toLocaleDateString(undefined, {
                           year: "numeric",
                           month: "short",
@@ -614,7 +614,7 @@ export default function StudentManagementPage() {
                               setDeleteTarget(s);
                               setDeleteError(null);
                             }}
-                            className="relative z-20 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
+                            className="relative z-20 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
                           >
                             Delete
                           </button>
@@ -632,32 +632,32 @@ export default function StudentManagementPage() {
       {/* SINGLE CREATE STUDENT MODAL */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800 max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-100"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
-              <div className="flex justify-between items-start border-b border-slate-800/80 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
-                  <h2 className="text-xl font-extrabold text-white">Register Student Account</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Register Student Account</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Provisions Supabase Auth credentials & assigns verified USN
                   </p>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition"
                 >
                   ✕
                 </button>
               </div>
 
               {modalError && (
-                <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <span>{modalError}</span>
@@ -666,7 +666,7 @@ export default function StudentManagementPage() {
 
               <form onSubmit={handleCreateStudent} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Full Legal Name
                   </label>
                   <input
@@ -675,12 +675,12 @@ export default function StudentManagementPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Jane Doe"
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     University Seat Number (USN)
                   </label>
                   <input
@@ -689,12 +689,12 @@ export default function StudentManagementPage() {
                     value={usn}
                     onChange={(e) => setUsn(e.target.value)}
                     placeholder="e.g. 1RV21CS001"
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Institutional Email
                   </label>
                   <input
@@ -703,12 +703,12 @@ export default function StudentManagementPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@institution.edu"
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Initial Password
                   </label>
                   <input
@@ -718,11 +718,11 @@ export default function StudentManagementPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Minimum 6 characters"
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex justify-end gap-3">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                   <InteractiveButton
                     type="button"
                     variant="outline"
@@ -747,46 +747,46 @@ export default function StudentManagementPage() {
       {/* EXCEL BATCH IMPORT MODAL */}
       <AnimatePresence>
         {showExcelModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800 max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-100"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
-              <div className="flex justify-between items-start border-b border-slate-800/80 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 mb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 mb-1">
                     Spreadsheet Batch Enrollment
                   </div>
-                  <h2 className="text-xl font-extrabold text-white">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                     Import Students from Excel (.xlsx)
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Recognizes columns: <span className="font-mono font-bold text-cyan-300">Name | USN | Email ID | Password</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Recognizes columns: <span className="font-mono font-bold text-slate-700 dark:text-cyan-300">Name | USN | Email ID | Password</span>
                   </p>
                 </div>
                 <button
                   onClick={() => setShowExcelModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Template Download Prompt */}
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-200">Need the standard spreadsheet format?</h4>
-                  <p className="text-[11px] text-slate-400">Download our pre-formatted template with verified column headers.</p>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Need the standard spreadsheet format?</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Download our pre-formatted template with verified column headers.</p>
                 </div>
                 <InteractiveButton
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleDownloadTemplate}
-                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/40 text-xs whitespace-nowrap font-semibold"
+                  className="border-emerald-300 dark:border-cyan-500/40 text-emerald-800 dark:text-cyan-300 hover:bg-white dark:hover:bg-cyan-950/40 text-xs whitespace-nowrap font-semibold"
                 >
                   📥 Download Template (.xlsx)
                 </InteractiveButton>
@@ -804,26 +804,26 @@ export default function StudentManagementPage() {
                   />
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-700 hover:border-cyan-400 bg-slate-950/60 hover:bg-slate-900/60 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2"
+                    className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-50/60 dark:bg-slate-950/60 hover:bg-slate-100/60 dark:hover:bg-slate-900/60 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2"
                   >
-                    <div className="w-10 h-10 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-cyan-950/70 border border-emerald-200 dark:border-cyan-500/30 text-emerald-700 dark:text-cyan-300 flex items-center justify-center">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-200">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         {excelFileName ? `Selected: ${excelFileName}` : "Click to select or drop your .xlsx / .xls file"}
                       </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Supports Microsoft Excel spreadsheets with up to 500 rows</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Supports Microsoft Excel spreadsheets with up to 500 rows</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {excelError && (
-                <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-4 h-4 flex-shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <span>{excelError}</span>
@@ -834,17 +834,17 @@ export default function StudentManagementPage() {
               {excelRows.length > 0 && !importSummary && (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-300">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
                       Roster Preview ({excelRows.length} Students Detected)
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold text-[10px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
                       {validExcelCount} Valid / {excelRows.length - validExcelCount} Incomplete
                     </span>
                   </div>
 
-                  <div className="max-h-56 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950/40">
+                  <div className="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/40 dark:bg-slate-950/40">
                     <table className="w-full text-left text-[11px]">
-                      <thead className="bg-slate-900 text-slate-400 sticky top-0 font-bold border-b border-slate-800">
+                      <thead className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 sticky top-0 font-bold border-b border-slate-200 dark:border-slate-800">
                         <tr>
                           <th className="py-2 px-3">Name</th>
                           <th className="py-2 px-3">USN</th>
@@ -852,17 +852,17 @@ export default function StudentManagementPage() {
                           <th className="py-2 px-3">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800 font-mono">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
                         {excelRows.map((r, i) => (
-                          <tr key={i} className={r.isValid ? "bg-slate-950/30" : "bg-rose-950/20"}>
-                            <td className="py-2 px-3 font-sans font-semibold text-slate-200">{r.name || "—"}</td>
-                            <td className="py-2 px-3 font-bold text-cyan-300">{r.usn || "—"}</td>
-                            <td className="py-2 px-3 text-slate-400 font-sans">{r.email || "—"}</td>
+                          <tr key={i} className={r.isValid ? "bg-white dark:bg-slate-950/30" : "bg-rose-50/50 dark:bg-rose-950/20"}>
+                            <td className="py-2 px-3 font-sans font-semibold text-slate-900 dark:text-slate-200">{r.name || "—"}</td>
+                            <td className="py-2 px-3 font-bold text-cool-700 dark:text-cyan-300">{r.usn || "—"}</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400 font-sans">{r.email || "—"}</td>
                             <td className="py-2 px-3">
                               {r.isValid ? (
-                                <span className="text-[10px] text-emerald-400 font-bold">✓ Ready</span>
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Ready</span>
                               ) : (
-                                <span className="text-[10px] text-rose-400 font-bold">⚠ {r.validationError}</span>
+                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">⚠ {r.validationError}</span>
                               )}
                             </td>
                           </tr>
@@ -876,39 +876,39 @@ export default function StudentManagementPage() {
               {/* Import Summary after Execution */}
               {importSummary && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                    <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                       Batch Import Results
                     </h3>
                     <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30">
-                        <span className="block text-xl font-black text-emerald-300 font-mono">
+                      <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30">
+                        <span className="block text-xl font-black text-emerald-800 dark:text-emerald-300 font-mono">
                           {importSummary.successCount}
                         </span>
-                        <span className="text-[10px] font-bold uppercase text-emerald-400">Created</span>
+                        <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">Created</span>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-amber-950/50 border border-amber-500/30">
-                        <span className="block text-xl font-black text-amber-300 font-mono">
+                      <div className="p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-500/30">
+                        <span className="block text-xl font-black text-amber-800 dark:text-amber-300 font-mono">
                           {importSummary.skippedCount}
                         </span>
-                        <span className="text-[10px] font-bold uppercase text-amber-400">Skipped (Exists)</span>
+                        <span className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400">Skipped (Exists)</span>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-rose-950/50 border border-rose-500/30">
-                        <span className="block text-xl font-black text-rose-300 font-mono">
+                      <div className="p-2.5 rounded-xl bg-rose-100/70 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/30">
+                        <span className="block text-xl font-black text-rose-800 dark:text-rose-300 font-mono">
                           {importSummary.failedCount}
                         </span>
-                        <span className="text-[10px] font-bold uppercase text-rose-400">Failed</span>
+                        <span className="text-[10px] font-bold uppercase text-rose-700 dark:text-rose-400">Failed</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Skipped or Failed Breakdown */}
                   {importSummary.results.some((r) => r.status !== "SUCCESS") && (
-                    <div className="max-h-40 overflow-y-auto border border-slate-800 rounded-xl p-2 bg-slate-950/60 space-y-1">
+                    <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50 dark:bg-slate-950/60 space-y-1">
                       {importSummary.results.filter((r) => r.status !== "SUCCESS").map((r, i) => (
-                        <div key={i} className="text-[11px] flex justify-between items-center py-1 px-2 rounded bg-slate-900 border border-slate-800">
-                          <span className="font-mono font-bold text-slate-200">{r.usn} ({r.fullName})</span>
-                          <span className={`text-[10px] font-bold ${r.status === "SKIPPED" ? "text-amber-400" : "text-rose-400"}`}>
+                        <div key={i} className="text-[11px] flex justify-between items-center py-1 px-2 rounded bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{r.usn} ({r.fullName})</span>
+                          <span className={`text-[10px] font-bold ${r.status === "SKIPPED" ? "text-amber-700 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"}`}>
                             {r.reason}
                           </span>
                         </div>
@@ -919,7 +919,7 @@ export default function StudentManagementPage() {
               )}
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-800/80 flex justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                 <InteractiveButton
                   type="button"
                   variant="outline"
@@ -950,20 +950,20 @@ export default function StudentManagementPage() {
       {/* EDIT STUDENT MODAL */}
       <AnimatePresence>
         {editStudent && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800 max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-100"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
             >
-              <div className="flex justify-between items-start border-b border-slate-800/80 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-950/60 border border-purple-500/30 text-purple-300 mb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/30 text-purple-800 dark:text-purple-300 mb-1">
                     Edit Student
                   </div>
-                  <h2 className="text-xl font-extrabold text-white">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                     Edit {editStudent.full_name}
                   </h2>
                   <p className="text-xs text-slate-400 font-mono">
@@ -972,15 +972,15 @@ export default function StudentManagementPage() {
                 </div>
                 <button
                   onClick={() => setEditStudent(null)}
-                  className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition"
                 >
                   ✕
                 </button>
               </div>
 
               {editError && (
-                <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <span>{editError}</span>
@@ -989,7 +989,7 @@ export default function StudentManagementPage() {
 
               <form onSubmit={handleUpdateStudent} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Student Full Name
                   </label>
                   <input
@@ -997,12 +997,12 @@ export default function StudentManagementPage() {
                     required
                     value={editFullName}
                     onChange={(e) => setEditFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     University Seat Number (USN)
                   </label>
                   <input
@@ -1010,26 +1010,26 @@ export default function StudentManagementPage() {
                     required
                     value={editUsn}
                     onChange={(e) => setEditUsn(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Account Status
                   </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as "ACTIVE" | "SUSPENDED")}
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   >
-                    <option value="ACTIVE" className="bg-slate-900 text-slate-100">ACTIVE (Can Submit Reflections)</option>
-                    <option value="SUSPENDED" className="bg-slate-900 text-slate-100">SUSPENDED (Access Frozen)</option>
+                    <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ACTIVE (Can Submit Reflections)</option>
+                    <option value="SUSPENDED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">SUSPENDED (Access Frozen)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
                     Reset Password (Optional)
                   </label>
                   <input
@@ -1037,14 +1037,14 @@ export default function StudentManagementPage() {
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
                     placeholder="Leave blank to preserve existing password"
-                    className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
                     Enter at least 6 characters if resetting student password.
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex justify-end gap-3">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                   <InteractiveButton
                     type="button"
                     variant="outline"
@@ -1069,32 +1069,32 @@ export default function StudentManagementPage() {
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-rose-900/50 max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-100"
+              className="bg-white/95 dark:bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-rose-200 dark:border-rose-900/50 max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-900 dark:text-slate-100"
             >
-              <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center text-rose-400 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-2">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Delete Student Account?
                 </h3>
-                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Are you sure you want to permanently remove <strong className="text-white">{deleteTarget.full_name}</strong> (<span className="font-mono text-cyan-300 font-bold">{deleteTarget.usn}</span>)?
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                  Are you sure you want to permanently remove <strong className="text-slate-900 dark:text-white">{deleteTarget.full_name}</strong> (<span className="font-mono text-cool-600 dark:text-cyan-300 font-bold">{deleteTarget.usn}</span>)?
                   This will also remove their authentication credentials and any associated submissions.
                 </p>
               </div>
 
               {deleteError && (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs">
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
                   {deleteError}
                 </div>
               )}
