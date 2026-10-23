@@ -32,21 +32,21 @@ export default function InteractiveButton({
 
   const variants = {
     primary:
-      "bg-gradient-to-r from-peach-500 via-rose-500 to-peach-600 text-white shadow-md shadow-peach-500/25 hover:shadow-lg hover:shadow-peach-500/40 hover:brightness-105",
+      "bg-gradient-to-r from-red-500 via-pink-500 via-purple-600 to-cyan-500 text-white shadow-lg shadow-pink-500/20 hover:shadow-cyan-500/30 hover:brightness-110",
     secondary:
-      "bg-white/90 backdrop-blur-md text-slate-800 border border-slate-200/80 shadow-sm hover:bg-white hover:border-peach-300 hover:text-peach-600 hover:shadow-md",
+      "bg-slate-900/90 text-slate-200 border border-slate-800 hover:bg-slate-800/90 hover:border-pink-500/50 hover:text-white shadow-md shadow-black/40",
     accent:
-      "bg-gradient-to-r from-cool-500 via-indigo-500 to-cool-600 text-white shadow-md shadow-cool-500/25 hover:shadow-lg hover:shadow-cool-500/40 hover:brightness-105",
+      "bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-pink-500/30 hover:brightness-110",
     ghost:
-      "bg-transparent text-slate-600 hover:bg-peach-100/50 hover:text-peach-700",
+      "bg-transparent text-slate-400 hover:text-white hover:bg-slate-800/60",
     outline:
-      "bg-white/60 backdrop-blur-xs text-slate-700 border border-slate-200 hover:border-cool-400 hover:bg-cool-50/50 hover:text-cool-800 shadow-xs",
+      "bg-slate-900/50 text-slate-300 border border-slate-800 hover:border-cyan-400 hover:bg-cyan-950/20 hover:text-cyan-300 shadow-sm",
   };
 
   return (
     <motion.button
       whileHover={disabled ? {} : { scale: 1.02 }}
-      whileTap={disabled ? {} : { scale: 0.95 }}
+      whileTap={disabled ? {} : { scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
       disabled={disabled}
       className={`${baseClasses} ${variants[variant]} ${className}`}

@@ -409,17 +409,18 @@ export default function SessionManagementPage() {
                       {s.status === "OPEN" ? "Close Session" : "Open Session"}
                     </InteractiveButton>
 
-                    <InteractiveButton
-                      onClick={() => {
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
                         setDeleteTarget(s);
                         setDeleteError(null);
                       }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50/60"
+                      className="relative z-20 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
                     >
                       Delete
-                    </InteractiveButton>
+                    </button>
                   </div>
                 </div>
               </GlowCard>
@@ -656,28 +657,28 @@ export default function SessionManagementPage() {
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deleteTarget && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-rose-200 max-w-md w-full p-6 sm:p-7 space-y-4"
+              className="bg-[#0d101e]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-rose-900/50 max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-100"
             >
-              <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center text-rose-400 mb-2">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="text-lg font-bold text-white">
                   Delete Assessment Session?
                 </h3>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Are you sure you want to permanently delete <strong className="text-slate-900">{deleteTarget.name}</strong>?
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-white">{deleteTarget.name}</strong>?
                   {deleteTarget.submissions_count > 0 && (
-                    <span className="block mt-1 font-semibold text-rose-600">
+                    <span className="block mt-1 font-semibold text-rose-400">
                       Warning: This session has {deleteTarget.submissions_count} student submission(s). Deleting it will also remove all associated submissions and assessments.
                     </span>
                   )}
@@ -685,7 +686,7 @@ export default function SessionManagementPage() {
               </div>
 
               {deleteError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs">
                   {deleteError}
                 </div>
               )}
@@ -698,15 +699,14 @@ export default function SessionManagementPage() {
                 >
                   Cancel
                 </InteractiveButton>
-                <InteractiveButton
+                <button
                   type="button"
-                  variant="primary"
-                  className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white"
                   onClick={handleDeleteSession}
                   disabled={deleting}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
                 >
                   {deleting ? "Deleting..." : "Permanently Delete"}
-                </InteractiveButton>
+                </button>
               </div>
             </motion.div>
           </div>

@@ -7,14 +7,14 @@ interface GlowCardProps {
   children: React.ReactNode;
   className?: string;
   onClick?: () => void;
-  glowColor?: "peach" | "cool" | "lavender";
+  glowColor?: "red" | "cyan" | "pink" | "violet" | "peach" | "cool" | "lavender";
 }
 
 export default function GlowCard({
   children,
   className = "",
   onClick,
-  glowColor = "peach",
+  glowColor = "pink",
 }: GlowCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
@@ -30,9 +30,13 @@ export default function GlowCard({
   };
 
   const glowColorMap = {
-    peach: "rgba(253, 147, 110, 0.22)",
-    cool: "rgba(56, 189, 248, 0.22)",
-    lavender: "rgba(192, 132, 252, 0.22)",
+    red: "rgba(239, 68, 68, 0.22)",
+    cyan: "rgba(6, 182, 212, 0.24)",
+    cool: "rgba(6, 182, 212, 0.24)",
+    pink: "rgba(236, 72, 153, 0.24)",
+    peach: "rgba(236, 72, 153, 0.24)",
+    violet: "rgba(139, 92, 246, 0.24)",
+    lavender: "rgba(139, 92, 246, 0.24)",
   };
 
   return (
@@ -45,9 +49,9 @@ export default function GlowCard({
         setMousePos({ x: -1000, y: -1000 });
       }}
       onClick={onClick}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      whileTap={{ scale: 0.985 }}
-      className={`relative overflow-hidden rounded-2xl glass-panel glass-panel-hover transition-all duration-300 ${className} ${
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      whileTap={onClick ? { scale: 0.99 } : undefined}
+      className={`relative overflow-hidden rounded-2xl glass-panel glass-panel-hover border border-slate-800/80 bg-[#0d101d]/75 text-slate-100 shadow-xl transition-all duration-300 ${className} ${
         onClick ? "cursor-pointer" : ""
       }`}
     >
