@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
+import Modal from "@/components/Modal";
 
 interface StudentProfile {
   id: string;
@@ -631,131 +632,118 @@ export default function StudentManagementPage() {
       </motion.div>
 
       {/* SINGLE CREATE STUDENT MODAL */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Register Student Account</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Provisions Supabase Auth credentials & assigns verified USN
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
-              </div>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        maxWidth="max-w-lg"
+      >
+        <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Register Student Account</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Provisions Supabase Auth credentials & assigns verified USN
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(false)}
+            className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+          >
+            ✕
+          </button>
+        </div>
 
-              {modalError && (
-                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{modalError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCreateStudent} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Full Legal Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Jane Doe"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    University Seat Number (USN)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={usn}
-                    onChange={(e) => setUsn(e.target.value)}
-                    placeholder="e.g. 1RV21CS001"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Institutional Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="student@institution.edu"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Initial Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
-                  <InteractiveButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowCreateModal(false)}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                  <InteractiveButton
-                    type="submit"
-                    variant="primary"
-                    disabled={provisioning || !fullName || !usn || !email || !password}
-                  >
-                    {provisioning ? "Provisioning..." : "Provision Student"}
-                  </InteractiveButton>
-                </div>
-              </form>
-            </motion.div>
+        {modalError && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{modalError}</span>
           </div>
         )}
-      </AnimatePresence>
+
+        <form onSubmit={handleCreateStudent} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+              Full Legal Name
+            </label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Jane Doe"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+              University Seat Number (USN)
+            </label>
+            <input
+              type="text"
+              required
+              value={usn}
+              onChange={(e) => setUsn(e.target.value)}
+              placeholder="e.g. 1RV21CS001"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+              Institutional Email
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="student@institution.edu"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+              Initial Password
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 6 characters"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+            />
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
+            <InteractiveButton
+              type="button"
+              variant="outline"
+              onClick={() => setShowCreateModal(false)}
+            >
+              Cancel
+            </InteractiveButton>
+            <InteractiveButton
+              type="submit"
+              variant="primary"
+              disabled={provisioning || !fullName || !usn || !email || !password}
+            >
+              {provisioning ? "Provisioning..." : "Provision Student"}
+            </InteractiveButton>
+          </div>
+        </form>
+      </Modal>
 
       {/* EXCEL BATCH IMPORT MODAL */}
-      <AnimatePresence>
-        {showExcelModal && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
+      <Modal
+        isOpen={showExcelModal}
+        onClose={() => setShowExcelModal(false)}
+        maxWidth="max-w-2xl"
+      >
               <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 mb-1">
@@ -943,184 +931,173 @@ export default function StudentManagementPage() {
                   </InteractiveButton>
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* EDIT STUDENT MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={Boolean(editStudent)}
+        onClose={() => setEditStudent(null)}
+        maxWidth="max-w-lg"
+      >
         {editStudent && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-lg w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/30 text-purple-800 dark:text-purple-300 mb-1">
-                    Edit Student
-                  </div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                    Edit {editStudent.full_name}
-                  </h2>
-                  <p className="text-xs text-slate-400 font-mono">
-                    USN: {editStudent.usn} &bull; ID: {editStudent.id.slice(0, 8)}...
-                  </p>
+          <div className="space-y-5">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/30 text-purple-800 dark:text-purple-300 mb-1">
+                  Edit Student
                 </div>
-                <button
-                  onClick={() => setEditStudent(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  Edit {editStudent.full_name}
+                </h2>
+                <p className="text-xs text-slate-400 font-mono">
+                  USN: {editStudent.usn} &bull; ID: {editStudent.id.slice(0, 8)}...
+                </p>
               </div>
+              <button
+                onClick={() => setEditStudent(null)}
+                className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+              >
+                ✕
+              </button>
+            </div>
 
-              {editError && (
-                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{editError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleUpdateStudent} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Student Full Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editFullName}
-                    onChange={(e) => setEditFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    University Seat Number (USN)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editUsn}
-                    onChange={(e) => setEditUsn(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Account Status
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as "ACTIVE" | "SUSPENDED")}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  >
-                    <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ACTIVE (Can Submit Reflections)</option>
-                    <option value="SUSPENDED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">SUSPENDED (Access Frozen)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Reset Password (Optional)
-                  </label>
-                  <input
-                    type="password"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="Leave blank to preserve existing password"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Enter at least 6 characters if resetting student password.
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
-                  <InteractiveButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditStudent(null)}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                  <InteractiveButton
-                    type="submit"
-                    variant="primary"
-                    disabled={savingEdit || !editFullName.trim() || !editUsn.trim()}
-                  >
-                    {savingEdit ? "Updating..." : "Save Changes"}
-                  </InteractiveButton>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* DELETE CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {deleteTarget && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-900 dark:text-slate-100"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-2">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            {editError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateStudent} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                  Student Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                />
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Delete Student Account?
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                  Are you sure you want to permanently remove <strong className="text-slate-900 dark:text-white">{deleteTarget.full_name}</strong> (<span className="font-mono text-cool-600 dark:text-cyan-300 font-bold">{deleteTarget.usn}</span>)?
-                  This will also remove their authentication credentials and any associated submissions.
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                  University Seat Number (USN)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editUsn}
+                  onChange={(e) => setEditUsn(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                  Account Status
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as "ACTIVE" | "SUSPENDED")}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                >
+                  <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ACTIVE (Can Submit Reflections)</option>
+                  <option value="SUSPENDED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">SUSPENDED (Access Frozen)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                  Reset Password (Optional)
+                </label>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Leave blank to preserve existing password"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Enter at least 6 characters if resetting student password.
                 </p>
               </div>
 
-              {deleteError && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
-                  {deleteError}
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                 <InteractiveButton
                   type="button"
                   variant="outline"
-                  onClick={() => setDeleteTarget(null)}
+                  onClick={() => setEditStudent(null)}
                 >
                   Cancel
                 </InteractiveButton>
-                <button
-                  type="button"
-                  onClick={handleDeleteStudent}
-                  disabled={deleting}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+                <InteractiveButton
+                  type="submit"
+                  variant="primary"
+                  disabled={savingEdit || !editFullName.trim() || !editUsn.trim()}
                 >
-                  {deleting ? "Deleting..." : "Permanently Delete"}
-                </button>
+                  {savingEdit ? "Updating..." : "Save Changes"}
+                </InteractiveButton>
               </div>
-            </motion.div>
+            </form>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="max-w-md"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-2">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Delete Student Account?
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                Are you sure you want to permanently remove <strong className="text-slate-900 dark:text-white">{deleteTarget.full_name}</strong> (<span className="font-mono text-cool-600 dark:text-cyan-300 font-bold">{deleteTarget.usn}</span>)?
+                This will also remove their authentication credentials and any associated submissions.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end gap-3">
+              <InteractiveButton
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </InteractiveButton>
+              <button
+                type="button"
+                onClick={handleDeleteStudent}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

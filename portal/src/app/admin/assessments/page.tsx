@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
+import Modal from "@/components/Modal";
 
 interface SubmissionRow {
   submission_id: string;
@@ -408,330 +409,318 @@ export default function AssessmentReviewPage() {
       </motion.div>
 
       {/* VIEW SUBMISSION MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={Boolean(viewModal)}
+        onClose={() => setViewModal(null)}
+        maxWidth="max-w-xl"
+      >
         {viewModal && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
-                    Student Reflection Details
-                  </div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                    {viewModal.student_name}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    USN: {viewModal.student_usn} • Session: {viewModal.session_name} • Submitted: {viewModal.submitted_at}
-                  </p>
+          <div className="space-y-5">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
+                  Student Reflection Details
                 </div>
-                <button
-                  onClick={() => setViewModal(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Reflection Body Card */}
-              <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 tracking-wider">
-                    Full Submitted Reflection Body
-                  </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {viewModal.char_count} / 500 characters
-                  </span>
-                </div>
-                <p className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-sans bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                  {viewModal.reflection_text}
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  {viewModal.student_name}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                  USN: {viewModal.student_usn} • Session: {viewModal.session_name} • Submitted: {viewModal.submitted_at}
                 </p>
               </div>
+              <button
+                onClick={() => setViewModal(null)}
+                className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+              >
+                ✕
+              </button>
+            </div>
 
-              {/* Assessment Stats or Evaluation Prompt */}
-              {viewModal.assessment_id ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-cool-50/80 dark:bg-cyan-950/40 p-3.5 rounded-xl border border-cool-200 dark:border-cyan-500/30 text-center">
-                      <span className="text-[11px] font-bold uppercase text-cool-700 dark:text-cyan-400 tracking-wider block">
-                        Matched Keywords
-                      </span>
-                      <span className="text-2xl font-black text-cool-900 dark:text-cyan-300 font-mono">
-                        {viewModal.reference_score} / 15
-                      </span>
-                    </div>
-                    <div className="bg-peach-50/80 dark:bg-pink-950/40 p-3.5 rounded-xl border border-peach-200 dark:border-pink-500/30 text-center">
-                      <span className="text-[11px] font-bold uppercase text-peach-700 dark:text-pink-400 tracking-wider block">
-                        Final Approved Mark
-                      </span>
-                      <span className="text-2xl font-black text-peach-900 dark:text-pink-300 font-mono">
-                        {viewModal.final_approved_mark.toFixed(2)} / 5.00
-                      </span>
-                    </div>
-                  </div>
+            {/* Reflection Body Card */}
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 tracking-wider">
+                  Full Submitted Reflection Body
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">
+                  {viewModal.char_count} / 500 characters
+                </span>
+              </div>
+              <p className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-sans bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                {viewModal.reflection_text}
+              </p>
+            </div>
 
-                  <div>
-                    <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block mb-1.5">
-                      Keywords Matched in Submission:
+            {/* Assessment Stats or Evaluation Prompt */}
+            {viewModal.assessment_id ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-cool-50/80 dark:bg-cyan-950/40 p-3.5 rounded-xl border border-cool-200 dark:border-cyan-500/30 text-center">
+                    <span className="text-[11px] font-bold uppercase text-cool-700 dark:text-cyan-400 tracking-wider block">
+                      Matched Keywords
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {viewModal.matched_keywords.length === 0 ? (
-                        <span className="text-xs text-slate-400 italic">No calibrated keywords matched.</span>
-                      ) : (
-                        viewModal.matched_keywords.map((kw, i) => (
-                          <span
-                            key={i}
-                            className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 dark:bg-cyan-950/40 text-cool-700 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30 font-semibold"
-                          >
-                            ✓ {kw}
-                          </span>
-                        ))
-                      )}
-                    </div>
+                    <span className="text-2xl font-black text-cool-900 dark:text-cyan-300 font-mono">
+                      {viewModal.reference_score} / 15
+                    </span>
+                  </div>
+                  <div className="bg-peach-50/80 dark:bg-pink-950/40 p-3.5 rounded-xl border border-peach-200 dark:border-pink-500/30 text-center">
+                    <span className="text-[11px] font-bold uppercase text-peach-700 dark:text-pink-400 tracking-wider block">
+                      Final Approved Mark
+                    </span>
+                    <span className="text-2xl font-black text-peach-900 dark:text-pink-300 font-mono">
+                      {viewModal.final_approved_mark.toFixed(2)} / 5.00
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-center space-y-2">
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                    This submission is pending evaluation.
-                  </p>
+
+                <div>
+                  <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block mb-1.5">
+                    Keywords Matched in Submission:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewModal.matched_keywords.length === 0 ? (
+                      <span className="text-xs text-slate-400 italic">No calibrated keywords matched.</span>
+                    ) : (
+                      viewModal.matched_keywords.map((kw, i) => (
+                        <span
+                          key={i}
+                          className="text-[11px] px-2.5 py-1 rounded-lg bg-cool-50 dark:bg-cyan-950/40 text-cool-700 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30 font-semibold"
+                        >
+                          ✓ {kw}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-center space-y-2">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                  This submission is pending evaluation.
+                </p>
+                <InteractiveButton
+                  onClick={async () => {
+                    await handleEvaluateSubmission(viewModal.submission_id);
+                    setViewModal(null);
+                  }}
+                  variant="primary"
+                  size="sm"
+                  disabled={evaluatingId === viewModal.submission_id}
+                >
+                  {evaluatingId === viewModal.submission_id ? "Evaluating..." : "⚡ Evaluate Reflection Now"}
+                </InteractiveButton>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setDeleteTarget(viewModal);
+                  setDeleteError(null);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
+              >
+                Delete Submission
+              </button>
+
+              <div className="flex gap-2">
+                <InteractiveButton
+                  onClick={async () => {
+                    await handleEvaluateSubmission(viewModal.submission_id, true);
+                    setViewModal(null);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  disabled={evaluatingId === viewModal.submission_id}
+                  className="border-cool-300 text-cool-800 hover:bg-cool-50"
+                >
+                  {evaluatingId === viewModal.submission_id ? "Evaluating..." : "🤖 Re-evaluate (Qwen)"}
+                </InteractiveButton>
+
+                {viewModal.assessment_id && (
                   <InteractiveButton
-                    onClick={async () => {
-                      await handleEvaluateSubmission(viewModal.submission_id);
+                    onClick={() => {
+                      setOverrideModal(viewModal);
+                      setOverrideMark(viewModal.final_approved_mark);
+                      setOverrideReason("");
+                      setOverrideError(null);
                       setViewModal(null);
                     }}
                     variant="primary"
                     size="sm"
-                    disabled={evaluatingId === viewModal.submission_id}
                   >
-                    {evaluatingId === viewModal.submission_id ? "Evaluating..." : "⚡ Evaluate Reflection Now"}
+                    Override Mark
                   </InteractiveButton>
-                </div>
-              )}
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setDeleteTarget(viewModal);
-                    setDeleteError(null);
-                  }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 active:scale-95 transition-all cursor-pointer select-none"
+                )}
+                <InteractiveButton
+                  onClick={() => setViewModal(null)}
+                  variant="secondary"
+                  size="sm"
                 >
-                  Delete Submission
-                </button>
-
-                <div className="flex gap-2">
-                  <InteractiveButton
-                    onClick={async () => {
-                      await handleEvaluateSubmission(viewModal.submission_id, true);
-                      setViewModal(null);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    disabled={evaluatingId === viewModal.submission_id}
-                    className="border-cool-300 text-cool-800 hover:bg-cool-50"
-                  >
-                    {evaluatingId === viewModal.submission_id ? "Evaluating..." : "🤖 Re-evaluate (Qwen)"}
-                  </InteractiveButton>
-
-                  {viewModal.assessment_id && (
-                    <InteractiveButton
-                      onClick={() => {
-                        setOverrideModal(viewModal);
-                        setOverrideMark(viewModal.final_approved_mark);
-                        setOverrideReason("");
-                        setOverrideError(null);
-                        setViewModal(null);
-                      }}
-                      variant="primary"
-                      size="sm"
-                    >
-                      Override Mark
-                    </InteractiveButton>
-                  )}
-                  <InteractiveButton
-                    onClick={() => setViewModal(null)}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    Close
-                  </InteractiveButton>
-                </div>
+                  Close
+                </InteractiveButton>
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
 
       {/* OVERRIDE MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={Boolean(overrideModal)}
+        onClose={() => setOverrideModal(null)}
+        maxWidth="max-w-xl"
+      >
         {overrideModal && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
-                    Audited Evaluation Override
-                  </div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                    {overrideModal.student_name}
-                  </h2>
-                  <p className="text-xs text-slate-400 font-mono">
-                    USN: {overrideModal.student_usn} • Session: {overrideModal.session_name}
-                  </p>
+          <div className="space-y-5">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cool-100 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 mb-1 border border-cool-200 dark:border-cyan-500/30">
+                  Audited Evaluation Override
                 </div>
-                <button
-                  onClick={() => setOverrideModal(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  {overrideModal.student_name}
+                </h2>
+                <p className="text-xs text-slate-400 font-mono">
+                  USN: {overrideModal.student_usn} • Session: {overrideModal.session_name}
+                </p>
               </div>
+              <button
+                onClick={() => setOverrideModal(null)}
+                className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+              >
+                ✕
+              </button>
+            </div>
 
-              {overrideError && (
-                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{overrideError}</span>
-                </div>
-              )}
+            {overrideError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{overrideError}</span>
+              </div>
+            )}
 
-              <form onSubmit={handleApplyOverride} className="space-y-4 pt-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide block mb-1">
-                      Calculated AI Mark
-                    </span>
-                    <span className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
-                      {overrideModal.original_ai_mark.toFixed(2)}
-                      <span className="text-xs text-slate-400 font-normal ml-1">/ 5.00</span>
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1">
-                      New Approved Mark (/5.00)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="5"
-                      required
-                      value={overrideMark}
-                      onChange={(e) => setOverrideMark(parseFloat(e.target.value) || 0)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-base font-extrabold font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
-                    />
-                  </div>
+            <form onSubmit={handleApplyOverride} className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                    Calculated AI Mark
+                  </span>
+                  <span className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
+                    {overrideModal.original_ai_mark.toFixed(2)}
+                    <span className="text-xs text-slate-400 font-normal ml-1">/ 5.00</span>
+                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    Mandatory Audit Reason (Required for Record)
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1">
+                    New Approved Mark (/5.00)
                   </label>
-                  <textarea
-                    rows={3}
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="5"
                     required
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    placeholder="Document specific justification for adjusting deterministic score..."
-                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition leading-relaxed"
+                    value={overrideMark}
+                    onChange={(e) => setOverrideMark(parseFloat(e.target.value) || 0)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-base font-extrabold font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
                   />
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
-                  <InteractiveButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setOverrideModal(null)}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                  <InteractiveButton
-                    type="submit"
-                    variant="primary"
-                    disabled={savingOverride}
-                  >
-                    {savingOverride ? "Recording Override..." : "Save Approved Mark"}
-                  </InteractiveButton>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* DELETE CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {deleteTarget && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-900 dark:text-slate-100"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center text-rose-400 mb-2">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-white">
-                  Delete Student Submission?
-                </h3>
-                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Are you sure you want to permanently delete the submission by <strong className="text-white">{deleteTarget.student_name}</strong> (<span className="font-mono text-cyan-300 font-bold">{deleteTarget.student_usn}</span>) for <strong className="text-white">{deleteTarget.session_name}</strong>?
-                  <span className="block mt-1 text-slate-400">
-                    This will delete their reflection record and allow the student to resubmit their reflection for this session.
-                  </span>
-                </p>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                  Mandatory Audit Reason (Required for Record)
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Document specific justification for adjusting deterministic score..."
+                  className="w-full p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition leading-relaxed"
+                />
               </div>
 
-              {deleteError && (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs">
-                  {deleteError}
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
                 <InteractiveButton
                   type="button"
                   variant="outline"
-                  onClick={() => setDeleteTarget(null)}
+                  onClick={() => setOverrideModal(null)}
                 >
                   Cancel
                 </InteractiveButton>
-                <button
-                  type="button"
-                  onClick={handleDeleteSubmission}
-                  disabled={deleting}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+                <InteractiveButton
+                  type="submit"
+                  variant="primary"
+                  disabled={savingOverride}
                 >
-                  {deleting ? "Deleting..." : "Permanently Delete"}
-                </button>
+                  {savingOverride ? "Recording Override..." : "Save Approved Mark"}
+                </InteractiveButton>
               </div>
-            </motion.div>
+            </form>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="max-w-md"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-2">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Delete Student Submission?
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                Are you sure you want to permanently delete the submission by <strong className="text-slate-900 dark:text-white">{deleteTarget.student_name}</strong> (<span className="font-mono text-cyan-600 dark:text-cyan-300 font-bold">{deleteTarget.student_usn}</span>) for <strong className="text-slate-900 dark:text-white">{deleteTarget.session_name}</strong>?
+                <span className="block mt-1 text-slate-500 dark:text-slate-400">
+                  This will delete their reflection record and allow the student to resubmit their reflection for this session.
+                </span>
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end gap-3">
+              <InteractiveButton
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </InteractiveButton>
+              <button
+                type="button"
+                onClick={handleDeleteSubmission}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

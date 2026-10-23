@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
+import Modal from "@/components/Modal";
 
 interface ReferenceMaterial {
   id: string;
@@ -471,329 +472,313 @@ export default function ReferenceLibraryPage() {
       </div>
 
       {/* UPLOAD & AUTO-CALIBRATE REFERENCE MODAL */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Upload Reference Document</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    File-read performs automated NLP extraction of 15 keywords (generic English forbidden)
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
-              </div>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        maxWidth="max-w-xl"
+      >
+        <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Upload Reference Document</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              File-read performs automated NLP extraction of 15 keywords (generic English forbidden)
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(false)}
+            className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+          >
+            ✕
+          </button>
+        </div>
 
-              {modalError && (
-                <div className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs leading-relaxed flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{modalError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCreateReference} className="space-y-5">
-                {/* Reference Title */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
-                    Reference Material Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Session 5: Neural Attention & Transformer Architectures"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition"
-                  />
-                </div>
-
-                {/* Document File Dropzone */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
-                    Upload Lecture File (.pdf, .docx, .txt, .ocr, .md)
-                  </label>
-                  <div className="border-2 border-dashed border-peach-200 dark:border-slate-700 hover:border-peach-400 dark:hover:border-cyan-400 rounded-2xl p-6 text-center transition bg-peach-50/30 dark:bg-slate-900/40 hover:bg-peach-50/60 dark:hover:bg-slate-900/70 cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".pdf,.docx,.txt,.ocr,.md,.text"
-                      required
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleProcessUploadedDocument(e.target.files[0], false);
-                        }
-                      }}
-                      className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
-                    />
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
-                      Upload PDF, DOCX, TXT, OCR, or Markdown. The system will perform a complete document read.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Processing State */}
-                {extractingDoc && (
-                  <div className="p-4 rounded-2xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center space-y-2">
-                    <div className="w-6 h-6 border-2 border-cool-500 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-xs font-bold text-cool-800 dark:text-cyan-300">
-                      Reading document & computing 15 keywords...
-                    </p>
-                    <p className="text-[11px] text-cool-600 dark:text-cyan-400">
-                      Purging generic stopwords ("the", "is", "as", "for", "have", "that") and extracting domain terms.
-                    </p>
-                  </div>
-                )}
-
-                {/* Extracted 15 Keywords Display */}
-                {extractedKeywords.length > 0 && !extractingDoc && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                        Auto-Calibrated Keywords ({extractedKeywords.length} of 15)
-                      </label>
-                      <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
-                        ✓ 15 Keywords Ready
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
-                      {extractedKeywords.map((kw, i) => (
-                        <span
-                          key={i}
-                          className="text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold border border-cool-200/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5"
-                        >
-                          <span className="text-[10px] font-bold text-cool-500 dark:text-cool-400 font-mono">#{i + 1}</span>
-                          <span>{kw}</span>
-                        </span>
-                      ))}
-                    </div>
-
-                    {referenceText && (
-                      <div className="bg-slate-50/80 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300">
-                        <div className="flex justify-between mb-1">
-                          <span className="font-bold text-slate-700 dark:text-slate-200">Document Text Read:</span>
-                          <span className="font-mono text-slate-400 dark:text-slate-500">{docCharCount} characters</span>
-                        </div>
-                        <p className="line-clamp-2 text-slate-500 dark:text-slate-400 font-sans">
-                          {referenceText}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                  <InteractiveButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowCreateModal(false)}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                  <InteractiveButton
-                    type="submit"
-                    variant="primary"
-                    disabled={saving || extractingDoc || !name.trim() || extractedKeywords.length !== 15}
-                  >
-                    {saving ? "Saving Reference..." : "Save & Calibrate (15 Keywords)"}
-                  </InteractiveButton>
-                </div>
-              </form>
-            </motion.div>
+        {modalError && (
+          <div className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs leading-relaxed flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{modalError}</span>
           </div>
         )}
-      </AnimatePresence>
+
+        <form onSubmit={handleCreateReference} className="space-y-5">
+          {/* Reference Title */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+              Reference Material Title
+            </label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Session 5: Neural Attention & Transformer Architectures"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-peach-400 focus:border-peach-400 focus:outline-none transition"
+            />
+          </div>
+
+          {/* Document File Dropzone */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+              Upload Lecture File (.pdf, .docx, .txt, .ocr, .md)
+            </label>
+            <div className="border-2 border-dashed border-peach-200 dark:border-slate-700 hover:border-peach-400 dark:hover:border-cyan-400 rounded-2xl p-6 text-center transition bg-peach-50/30 dark:bg-slate-900/40 hover:bg-peach-50/60 dark:hover:bg-slate-900/70 cursor-pointer">
+              <input
+                type="file"
+                accept=".pdf,.docx,.txt,.ocr,.md,.text"
+                required
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleProcessUploadedDocument(e.target.files[0], false);
+                  }
+                }}
+                className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
+              />
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+                Upload PDF, DOCX, TXT, OCR, or Markdown. The system will perform a complete document read.
+              </p>
+            </div>
+          </div>
+
+          {/* Processing State */}
+          {extractingDoc && (
+            <div className="p-4 rounded-2xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center space-y-2">
+              <div className="w-6 h-6 border-2 border-cool-500 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs font-bold text-cool-800 dark:text-cyan-300">
+                Reading document & computing 15 keywords...
+              </p>
+              <p className="text-[11px] text-cool-600 dark:text-cyan-400">
+                Purging generic stopwords ("the", "is", "as", "for", "have", "that") and extracting domain terms.
+              </p>
+            </div>
+          )}
+
+          {/* Extracted 15 Keywords Display */}
+          {extractedKeywords.length > 0 && !extractingDoc && (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                  Auto-Calibrated Keywords ({extractedKeywords.length} of 15)
+                </label>
+                <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
+                  ✓ 15 Keywords Ready
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
+                {extractedKeywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold border border-cool-200/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5"
+                  >
+                    <span className="text-[10px] font-bold text-cool-500 dark:text-cool-400 font-mono">#{i + 1}</span>
+                    <span>{kw}</span>
+                  </span>
+                ))}
+              </div>
+
+              {referenceText && (
+                <div className="bg-slate-50/80 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300">
+                  <div className="flex justify-between mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-200">Document Text Read:</span>
+                    <span className="font-mono text-slate-400 dark:text-slate-500">{docCharCount} characters</span>
+                  </div>
+                  <p className="line-clamp-2 text-slate-500 dark:text-slate-400 font-sans">
+                    {referenceText}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+            <InteractiveButton
+              type="button"
+              variant="outline"
+              onClick={() => setShowCreateModal(false)}
+            >
+              Cancel
+            </InteractiveButton>
+            <InteractiveButton
+              type="submit"
+              variant="primary"
+              disabled={saving || extractingDoc || !name.trim() || extractedKeywords.length !== 15}
+            >
+              {saving ? "Saving Reference..." : "Save & Calibrate (15 Keywords)"}
+            </InteractiveButton>
+          </div>
+        </form>
+      </Modal>
 
       {/* EDIT REFERENCE MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={Boolean(editReference)}
+        onClose={() => setEditReference(null)}
+        maxWidth="max-w-xl"
+      >
         {editReference && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-slate-100"
-            >
-              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-peach-100 dark:bg-peach-950/50 text-peach-800 dark:text-peach-300 mb-1">
-                    Edit Reference
-                  </div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Edit Reference Material</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Update reference notes or re-upload a document to refresh the 15 keywords
-                  </p>
-                </div>
-                <button
-                  onClick={() => setEditReference(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {editError && (
-                <div className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs leading-relaxed flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{editError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleUpdateReference} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
-                    Reference Material Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-peach-400 focus:outline-none transition"
-                  />
-                </div>
-
-                {/* Optional Document Replacement */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
-                    Replace Document File (Optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.txt,.ocr,.md,.text"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleProcessUploadedDocument(e.target.files[0], true);
-                      }
-                    }}
-                    className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 dark:hover:file:bg-slate-700 transition"
-                  />
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-                    Upload a new file to re-calculate keywords, or keep existing calibrated keywords below.
-                  </p>
-                </div>
-
-                {editExtracting && (
-                  <div className="p-3.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center text-xs font-bold text-cool-800 dark:text-cyan-300">
-                    Re-reading document and updating 15 keywords...
-                  </div>
-                )}
-
-                {/* Keywords Chips */}
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                      Active 15 Keywords
-                    </label>
-                    <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
-                      {editKeywords.length} / 15 keywords
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 max-h-40 overflow-y-auto">
-                    {editKeywords.map((kw, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold border border-cool-200/80 dark:border-slate-700 shadow-xs flex items-center gap-1"
-                      >
-                        <span className="text-[10px] text-cool-500 dark:text-cool-400 font-bold">#{i + 1}</span>
-                        <span>{kw}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                  <InteractiveButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditReference(null)}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                  <InteractiveButton
-                    type="submit"
-                    variant="primary"
-                    disabled={savingEdit || editExtracting || !editName.trim() || editKeywords.length !== 15}
-                  >
-                    {savingEdit ? "Updating..." : "Save Changes"}
-                  </InteractiveButton>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* DELETE CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {deleteTarget && (
-          <div className="liquid-glass-backdrop">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="liquid-glass-modal max-w-md w-full p-6 sm:p-7 space-y-4 text-slate-800 dark:text-slate-100"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-500 dark:text-rose-400 mb-2">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-
+          <div className="space-y-6">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Delete Reference Material?
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                  Are you sure you want to permanently delete <strong className="text-slate-900 dark:text-white">{deleteTarget.name}</strong>?
-                  This will remove its 15 calibrated keywords and unlink it from any assessment sessions.
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-peach-100 dark:bg-peach-950/50 text-peach-800 dark:text-peach-300 mb-1">
+                  Edit Reference
+                </div>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Edit Reference Material</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Update reference notes or re-upload a document to refresh the 15 keywords
+                </p>
+              </div>
+              <button
+                onClick={() => setEditReference(null)}
+                className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs leading-relaxed flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateReference} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+                  Reference Material Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-peach-400 focus:outline-none transition"
+                />
+              </div>
+
+              {/* Optional Document Replacement */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+                  Replace Document File (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,.ocr,.md,.text"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleProcessUploadedDocument(e.target.files[0], true);
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 dark:hover:file:bg-slate-700 transition"
+                />
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                  Upload a new file to re-calculate keywords, or keep existing calibrated keywords below.
                 </p>
               </div>
 
-              {deleteError && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
-                  {deleteError}
+              {editExtracting && (
+                <div className="p-3.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center text-xs font-bold text-cool-800 dark:text-cyan-300">
+                  Re-reading document and updating 15 keywords...
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end gap-3">
+              {/* Keywords Chips */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    Active 15 Keywords
+                  </label>
+                  <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
+                    {editKeywords.length} / 15 keywords
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 max-h-40 overflow-y-auto">
+                  {editKeywords.map((kw, i) => (
+                    <span
+                      key={i}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold border border-cool-200/80 dark:border-slate-700 shadow-xs flex items-center gap-1"
+                    >
+                      <span className="text-[10px] text-cool-500 dark:text-cool-400 font-bold">#{i + 1}</span>
+                      <span>{kw}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                 <InteractiveButton
                   type="button"
                   variant="outline"
-                  onClick={() => setDeleteTarget(null)}
+                  onClick={() => setEditReference(null)}
                 >
                   Cancel
                 </InteractiveButton>
-                <button
-                  type="button"
-                  onClick={handleDeleteReference}
-                  disabled={deleting}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+                <InteractiveButton
+                  type="submit"
+                  variant="primary"
+                  disabled={savingEdit || editExtracting || !editName.trim() || editKeywords.length !== 15}
                 >
-                  {deleting ? "Deleting..." : "Permanently Delete"}
-                </button>
+                  {savingEdit ? "Updating..." : "Save Changes"}
+                </InteractiveButton>
               </div>
-            </motion.div>
+            </form>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="max-w-md"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center text-rose-500 dark:text-rose-400 mb-2">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Delete Reference Material?
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-900 dark:text-white">{deleteTarget.name}</strong>?
+                This will remove its 15 calibrated keywords and unlink it from any assessment sessions.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end gap-3">
+              <InteractiveButton
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </InteractiveButton>
+              <button
+                type="button"
+                onClick={handleDeleteReference}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
