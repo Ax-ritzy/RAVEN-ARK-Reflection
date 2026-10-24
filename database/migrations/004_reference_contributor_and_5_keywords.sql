@@ -5,6 +5,8 @@
 -- =================================================================
 
 -- 1. Expand Profiles Role Column & Update Role Check Constraint
+DROP POLICY IF EXISTS "Professors can delete student profiles" ON public.profiles;
+
 ALTER TABLE public.profiles
     ALTER COLUMN role TYPE VARCHAR(30);
 
@@ -14,6 +16,11 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
     ADD CONSTRAINT profiles_role_check
     CHECK (role IN ('STUDENT', 'PROFESSOR', 'REFERENCE_CONTRIBUTOR'));
+
+CREATE POLICY "Professors can delete student profiles"
+    ON public.profiles FOR DELETE
+    TO authenticated
+    USING (public.get_user_role() = 'PROFESSOR' AND role IN ('STUDENT', 'REFERENCE_CONTRIBUTOR'));
 
 -- 2. Update Reference Keyword Sets Check Constraint (Allow 5 and legacy 15)
 ALTER TABLE public.reference_keyword_sets
