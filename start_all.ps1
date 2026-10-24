@@ -33,11 +33,11 @@ if ($ollamaRunning) {
 
 # 2. Start FastAPI Assessment Engine (Port 8000)
 Write-Host "`n[2/3] Launching FastAPI Assessment Engine (Port 8000)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Backend (Port 8000)'; cd '$Root\backend'; Write-Host '--- FASTAPI ASSESSMENT SERVICE (Port 8000) ---' -ForegroundColor Green; uvicorn app.main:app --port 8000 --reload"
+Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Backend (Port 8000)'; cd '$Root\backend'; Write-Host '--- FASTAPI ASSESSMENT SERVICE (Port 8000) ---' -ForegroundColor Green; uvicorn app.main:app --port 8000 --reload"
 
 # 3. Start Next.js Web Portal (Port 3000)
 Write-Host "`n[3/3] Launching Next.js Web Portal (Port 3000)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Portal (Port 3000)'; cd '$Root\portal'; Write-Host '--- UNIFIED REFLECTION AI PORTAL (Port 3000) ---' -ForegroundColor Cyan; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Portal (Port 3000)'; cd '$Root\portal'; Write-Host '--- UNIFIED REFLECTION AI PORTAL (Port 3000) ---' -ForegroundColor Cyan; npm run dev"
 
 # Wait a moment for server initialization
 Write-Host "`nWaiting for local servers to initialize..." -ForegroundColor Gray
