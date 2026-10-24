@@ -57,5 +57,7 @@ Write-Host "-----------------------------------------------------------------" -
 Write-Host "  Login Portal Rules:" -ForegroundColor White
 Write-Host "    * Enter Professor Key -> Automatically opens /admin/dashboard" -ForegroundColor Yellow
 Write-Host "    * Enter Student Key   -> Automatically opens /student/dashboard" -ForegroundColor Yellow
+Write-Host "    * Enter Contributor   -> Automatically opens /reference" -ForegroundColor Yellow
+Write-Host "    * Dedicated Upload    -> Direct link: http://localhost:3000/reference/login" -ForegroundColor Magenta
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host "Keep the service windows open while using the application.`n" -ForegroundColor Gray
