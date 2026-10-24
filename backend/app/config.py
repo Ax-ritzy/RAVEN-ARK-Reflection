@@ -23,7 +23,7 @@ class Settings:
 
         # Ollama Qwen Integration
         self.ollama_url: str = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-        self.ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+        self.ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen3.5:4b")
         self.ollama_enabled: bool = os.getenv("OLLAMA_ENABLED", "true").lower() == "true"
         self.ollama_timeout_seconds: int = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30"))
 

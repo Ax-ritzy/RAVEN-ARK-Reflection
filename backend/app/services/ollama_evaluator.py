@@ -15,8 +15,8 @@ def evaluate_with_qwen(
     timeout_seconds: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    Evaluates a student reflection against the 15 required keywords using local Ollama Qwen 3.5:9B.
-    Runs with think=False for low-latency (~10-15s), high-precision deterministic scoring.
+    Evaluates a student reflection against the required keywords using local Ollama Qwen 3.5:4B.
+    Runs with think=False for low-latency (~3-6s), high-precision deterministic scoring.
     """
     timeout = timeout_seconds or settings.ollama_timeout_seconds
     clean_keywords = [str(k).strip().lower() for k in reference_keywords if str(k).strip()]

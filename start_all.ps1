@@ -13,8 +13,8 @@ Write-Host "    LAUNCHING REFLECTION AI PLATFORM (ALL-IN-ONE)" -ForegroundColor 
 Write-Host "    Root Directory: $Root" -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
-# 1. Check Ollama & Qwen 3.5:9B
-Write-Host "`n[1/3] Checking Ollama & Qwen 3.5:9B Model..." -ForegroundColor Yellow
+# 1. Check Ollama & Qwen 3.5:4B
+Write-Host "`n[1/3] Checking Ollama & Qwen 3.5:4B Model..." -ForegroundColor Yellow
 $ollamaRunning = $false
 try {
     $resp = Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/tags" -Method Get -TimeoutSec 2
@@ -24,7 +24,7 @@ try {
 }
 
 if ($ollamaRunning) {
-    Write-Host "  --> Ollama service is active on port 11434 with qwen3.5:9b ready." -ForegroundColor Green
+    Write-Host "  --> Ollama service is active on port 11434 with qwen3.5:4b ready." -ForegroundColor Green
 } else {
     Write-Host "  --> Starting Ollama service in background..." -ForegroundColor Yellow
     Start-Process ollama -ArgumentList "serve" -WindowStyle Hidden
@@ -52,7 +52,7 @@ Write-Host "               ALL SERVICES RUNNING SUCCESSFULLY!                " -
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host "  Web Portal:         http://localhost:3000" -ForegroundColor Cyan
 Write-Host "  FastAPI Docs:       http://localhost:8000/docs" -ForegroundColor Green
-Write-Host "  Ollama Local AI:    http://127.0.0.1:11434 (qwen3.5:9b)" -ForegroundColor Magenta
+Write-Host "  Ollama Local AI:    http://127.0.0.1:11434 (qwen3.5:4b)" -ForegroundColor Magenta
 Write-Host "-----------------------------------------------------------------" -ForegroundColor Gray
 Write-Host "  Login Portal Rules:" -ForegroundColor White
 Write-Host "    * Enter Professor Key -> Automatically opens /admin/dashboard" -ForegroundColor Yellow
