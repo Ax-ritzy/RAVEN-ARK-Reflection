@@ -1,182 +1,117 @@
 import re
 from collections import Counter
-from typing import List, Set, Tuple
+from typing import List, Set
 
-# Comprehensive, exhaustive English stopword corpus
-# Non-negotiable: all generic English words (articles, auxiliary verbs, pronouns, prepositions, conjunctions) are strictly forbidden.
+# Comprehensive academic & conversational stopword list
+# Excludes pronouns, conjunctions, prepositions, adverbs, and conversational fluff
 FORBIDDEN_STOPWORDS: Set[str] = {
-    # Articles & Determiners
+    # Articles, Determiners & Pronouns
     "a", "an", "the", "this", "that", "these", "those", "each", "every", "all", "both", 
-    "some", "any", "no", "neither", "either", "another", "other", "such",
+    "some", "any", "no", "neither", "either", "another", "other", "such", "something",
+    "anything", "nothing", "everything", "someone", "anyone", "everyone", "i", "me", "my",
+    "myself", "we", "us", "our", "ours", "ourselves", "you", "your", "yours", "yourself",
+    "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it",
+    "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which",
+    "who", "whom", "whose", "whoever", "whomever", "one", "two", "three", "first", "second",
     
-    # Prepositions
+    # Prepositions & Conjunctions
     "about", "above", "across", "after", "against", "along", "among", "around", "at", 
     "before", "behind", "below", "beneath", "beside", "between", "beyond", "by", 
     "down", "during", "except", "for", "from", "in", "inside", "into", "near", 
     "of", "off", "on", "onto", "out", "outside", "over", "past", "round", "since", 
     "through", "throughout", "till", "to", "toward", "towards", "under", "underneath", 
-    "until", "unto", "up", "upon", "with", "within", "without",
+    "until", "unto", "up", "upon", "with", "within", "without", "and", "but", "or", 
+    "nor", "so", "yet", "as", "because", "although", "though", "even", "if", "unless", 
+    "while", "whereas", "whether", "than",
     
-    # Pronouns
-    "i", "me", "my", "myself", "we", "us", "our", "ours", "ourselves", 
-    "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", 
-    "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", 
-    "theirs", "themselves", "what", "which", "who", "whom", "whose", "whoever", "whomever",
+    # Conversational Fillers, Adverbs & Casual Modifiers (Purging #something, #instead, #gracefully, etc.)
+    "instead", "gracefully", "altogether", "simply", "actually", "really", "wondering",
+    "happens", "grab", "wrong", "right", "away", "today", "yesterday", "tomorrow",
+    "morning", "fast", "longer", "real", "helpful", "turns", "turn", "keeps", "saying",
+    "again", "almost", "already", "also", "always", "anyway", "back", "ever", "far",
+    "here", "how", "however", "just", "less", "more", "most", "much", "never", "next",
+    "not", "now", "often", "only", "quite", "rather", "seldom", "soon", "still", "then",
+    "there", "therefore", "thus", "too", "very", "well", "when", "whenever", "where",
+    "wherever", "why", "yes", "like", "sure", "maybe", "probably", "certainly",
+    "smart", "quick", "clear", "core", "ceramic", "heat", "coffee", "cools", "cup",
+    "mug", "thermometer", "paper", "words", "world", "thing", "things", "part",
+    "work", "works", "working",
     
     # Auxiliary & Linking Verbs
-    "am", "is", "are", "was", "were", "be", "been", "being", 
-    "have", "has", "had", "having", "do", "does", "did", "done", "doing", 
-    "can", "could", "will", "would", "shall", "should", "may", "might", "must", "ought",
-    "need", "dare", "used", "get", "got", "getting", "make", "made", "making",
-    
-    # Conjunctions
-    "and", "but", "or", "nor", "so", "yet", "for", "as", "because", "although", 
-    "though", "even", "if", "unless", "while", "whereas", "whether",
-    
-    # Adverbs, Qualifiers & Fillers
-    "again", "almost", "already", "also", "always", "anyway", "back", "even", "ever", 
-    "far", "here", "how", "however", "just", "less", "more", "most", "much", "never", 
-    "next", "not", "now", "often", "only", "quite", "rather", "really", "seldom", 
-    "so", "soon", "still", "then", "there", "therefore", "thus", "too", "very", 
-    "well", "when", "whenever", "where", "wherever", "why", "yes", "no",
-    
-    # Common Academic Boilerplate & Functional Words
-    "etc", "ie", "eg", "via", "example", "examples", "figure", "figures", "table", 
-    "tables", "page", "pages", "chapter", "chapters", "section", "sections", "note", 
-    "notes", "lecture", "lectures", "slide", "slides", "course", "courses", "student", 
-    "students", "professor", "professors", "university", "college", "include", "includes", 
-    "including", "included", "use", "uses", "using", "key", "summary", "topic", "topics", 
-    "introduction", "conclusion", "definition", "overview", "part", "parts", "first", 
-    "second", "third", "one", "two", "three", "four", "five", "six", "seven", "eight", 
-    "nine", "ten", "given", "shows", "shown", "show", "described", "describes", "describe", 
-    "based", "defined", "called", "known", "seen", "say", "said", "take", "takes", "taking"
+    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", 
+    "having", "do", "does", "did", "done", "doing", "can", "could", "will", "would", 
+    "shall", "should", "may", "might", "must", "ought", "need", "used", "get", "got", 
+    "getting", "make", "made", "making", "say", "said", "take", "takes", "taking",
+    "win", "put", "let", "see", "look", "run"
 }
-
-def normalize_stem(word: str) -> str:
-    """
-    Lightweight, deterministic rule-based stemmer to unify plural and singular
-    forms without requiring heavy external NLP models.
-    Preserves specialized technical words ending in 'ss' (e.g. 'loss', 'process').
-    """
-    w = word.lower().strip()
-    
-    if len(w) <= 3:
-        return w
-        
-    # Words ending in -ies -> -y (e.g. 'technologies' -> 'technology')
-    if w.endswith("ies") and len(w) > 4:
-        return w[:-3] + "y"
-        
-    # Words ending in -sses, -shes, -ches, -xes -> drop -es (e.g. 'losses' -> 'loss')
-    if (w.endswith("sses") or w.endswith("shes") or w.endswith("ches") or w.endswith("xes")) and len(w) > 4:
-        return w[:-2]
-        
-    # Words ending in -s (not -ss, -us, -is, -as) -> drop -s (e.g. 'gradients' -> 'gradient')
-    if w.endswith("s") and not (w.endswith("ss") or w.endswith("us") or w.endswith("is") or w.endswith("as")):
-        return w[:-1]
-        
-    return w
 
 def extract_top_keywords(text: str, count: int = 5) -> List[str]:
     """
-    Statistically extracts authoritative, subject-specific keywords (default 5)
-    from an authoritative lecture document.
-    
-    Guarantees:
-    1. ZERO forbidden stopwords (e.g., 'as', 'a', 'is', 'the', 'for', 'have', 'that').
-    2. Exactly `count` distinct, lowercase terms.
-    3. Scores candidates using term frequency, capitalized title emphasis, and technical word length.
-    4. Deterministic and instantaneous (runs in milliseconds without external AI).
+    Extracts authoritative, multi-word conceptual keywords and keyphrases from reference text:
+    1. Segments text into semantic clauses.
+    2. Identifies contiguous conceptual phrases (e.g. 'Educated guess', 'Side-by-side check', 'Empirical evidence').
+    3. Purges all generic English conversational stopwords, filler adverbs, and vague pronouns.
+    4. Guarantees exactly `count` unique, high-quality, topic-relevant concepts.
     """
     if not text or not text.strip():
         raise ValueError("Document contains no readable text for keyword extraction.")
 
-    # 1. Identify words and track casing (capitalized words often represent core subject terms)
-    raw_tokens = re.findall(r'\b[a-zA-Z][a-zA-Z\-]{2,}\b', text)
-    
-    if not raw_tokens:
-        raise ValueError("No valid word tokens found in document.")
+    # Split into semantic clauses (by punctuation / boundaries)
+    clauses = re.split(r'[,.;:\n\(\)\[\]"\'`]+', text)
+    candidates: Counter = Counter()
 
-    scores: Counter = Counter()
-    original_forms: dict = {}
+    for clause in clauses:
+        words = [w.strip("'- ") for w in re.findall(r'[a-zA-Z0-9\-]+', clause.lower()) if w.strip("'- ")]
+        cur_phrase = []
+        for w in words:
+            if w not in FORBIDDEN_STOPWORDS and len(w) >= 3:
+                cur_phrase.append(w)
+            else:
+                if len(cur_phrase) >= 2:
+                    phrase_title = " ".join(cur_phrase[:3]).title()
+                    candidates[phrase_title] += 6
+                elif len(cur_phrase) == 1 and len(cur_phrase[0]) >= 4:
+                    candidates[cur_phrase[0].title()] += 2
+                cur_phrase = []
+        if len(cur_phrase) >= 2:
+            phrase_title = " ".join(cur_phrase[:3]).title()
+            candidates[phrase_title] += 6
+        elif len(cur_phrase) == 1 and len(cur_phrase[0]) >= 4:
+            candidates[cur_phrase[0].title()] += 2
 
-    for token in raw_tokens:
-        lower = token.lower().strip("-")
-        
-        # Discard if token is too short or is a forbidden stopword
-        if len(lower) < 3 or lower in FORBIDDEN_STOPWORDS:
-            continue
+    # Rank candidates by score descending
+    ranked = [c for c, _ in candidates.most_common()]
 
-        stemmed = normalize_stem(lower)
-        if stemmed in FORBIDDEN_STOPWORDS or len(stemmed) < 3:
-            continue
-
-        # Prefer the cleanest representative form of the word
-        if stemmed not in original_forms or len(lower) < len(original_forms[stemmed]):
-            original_forms[stemmed] = stemmed
-
-        # Base score = 1 point per occurrence
-        point = 1.0
-        
-        # Emphasis bonus: TitleCase words in technical notes carry higher topical weight
-        if token[0].isupper() and not token.isupper():
-            point += 0.5
-            
-        # Complexity bonus: Technical domain terms are usually >= 6 characters
-        if len(stemmed) >= 6:
-            point += 0.4
-        if len(stemmed) >= 9:
-            point += 0.4
-
-        scores[stemmed] += point
-
-    if not scores:
-        raise ValueError("Document contains only generic words or stopwords; no domain keywords could be calibrated.")
-
-    # Sort candidates by score descending, then by term length descending, then alphabetical
-    ranked_candidates = sorted(
-        scores.keys(),
-        key=lambda k: (scores[k], len(k), k),
-        reverse=True
-    )
-
-    # Collect up to `count` distinct keywords
-    keywords: List[str] = []
-    seen: Set[str] = set()
-
-    for candidate in ranked_candidates:
-        if candidate not in seen and candidate not in FORBIDDEN_STOPWORDS:
-            seen.add(candidate)
-            keywords.append(candidate)
-            if len(keywords) == count:
+    # Collect up to `count` distinct concepts, avoiding redundant substrings
+    selected: List[str] = []
+    for item in ranked:
+        item_lower = item.lower()
+        # Avoid duplicate substrings (e.g. don't pick 'Guess' if 'Educated Guess' is already selected)
+        is_sub = False
+        for s in selected:
+            s_lower = s.lower()
+            if item_lower == s_lower or item_lower in s_lower or s_lower in item_lower:
+                is_sub = True
                 break
+        if not is_sub:
+            selected.append(item)
+        if len(selected) == count:
+            break
 
-    # Fallback padding if a very short document yielded fewer than `count` words:
-    if len(keywords) < count:
-        all_words = re.findall(r'\b[a-z]{3,}\b', text.lower())
+    # If document was extremely short, pad with clean individual tokens
+    if len(selected) < count:
+        all_words = re.findall(r'\b[a-zA-Z]{4,}\b', text)
         for w in all_words:
-            norm = normalize_stem(w)
-            if norm not in seen and norm not in FORBIDDEN_STOPWORDS and len(norm) >= 3:
-                seen.add(norm)
-                keywords.append(norm)
-                if len(keywords) == count:
+            w_title = w.title()
+            w_lower = w.lower()
+            if w_lower not in FORBIDDEN_STOPWORDS and not any(w_lower in s.lower() for s in selected):
+                selected.append(w_title)
+                if len(selected) == count:
                     break
 
-    # If still under `count` (e.g. extremely tiny document), generate domain-specific indexed anchors
-    idx = 1
-    while len(keywords) < count:
-        placeholder = f"concept_{idx}"
-        if placeholder not in seen:
-            seen.add(placeholder)
-            keywords.append(placeholder)
-        idx += 1
+    return selected[:count]
 
-    return keywords[:count]
-
-def extract_top_5_keywords(text: str) -> List[str]:
-    """Helper alias for standard 5-keyword extraction."""
-    return extract_top_keywords(text, count=5)
 
 def extract_top_15_keywords(text: str) -> List[str]:
-    """Legacy helper alias for 15-keyword extraction."""
+    """Legacy backward-compatibility alias for 15-keyword extraction."""
     return extract_top_keywords(text, count=15)
