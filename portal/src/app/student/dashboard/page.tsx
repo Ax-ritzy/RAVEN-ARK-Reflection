@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached } from "@/lib/cache";
 import { motion } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -26,15 +27,18 @@ interface SessionItem {
 
 export default function StudentDashboardPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [studentUsn, setStudentUsn] = useState<string>("");
-  const [studentName, setStudentName] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const cachedSessions = getCached<SessionItem[]>("student_dashboard_sessions");
+  const cachedStudent = getCached<{ usn: string; name: string }>("student_dashboard_profile");
+  const [sessions, setSessions] = useState<SessionItem[]>(cachedSessions || []);
+  const [studentUsn, setStudentUsn] = useState<string>(cachedStudent?.usn || "");
+  const [studentName, setStudentName] = useState<string>(cachedStudent?.name || "");
+  const [loading, setLoading] = useState(!cachedSessions);
 
   useEffect(() => {
     async function loadData() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
 
       if (!user) {
         router.push("/login");
@@ -54,6 +58,7 @@ export default function StudentDashboardPage() {
 
       setStudentUsn(profile.usn || "");
       setStudentName(profile.full_name);
+      setCached("student_dashboard_profile", { usn: profile.usn || "", name: profile.full_name });
 
       // Concurrently fetch sessions and student's submissions in parallel
       const [{ data: sessionRows }, { data: submissionRows }] = await Promise.all([
@@ -88,6 +93,7 @@ export default function StudentDashboardPage() {
       }));
 
       setSessions(merged);
+      setCached("student_dashboard_sessions", merged);
       setLoading(false);
     }
 

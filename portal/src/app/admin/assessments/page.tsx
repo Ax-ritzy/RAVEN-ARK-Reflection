@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached, invalidateCache } from "@/lib/cache";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -28,8 +29,9 @@ interface SubmissionRow {
 
 export default function AssessmentReviewPage() {
   const router = useRouter();
-  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedSubmissions = getCached<SubmissionRow[]>("admin_assessments_list");
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>(cachedSubmissions || []);
+  const [loading, setLoading] = useState(!cachedSubmissions);
   const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
 
   // View Reflection Modal State
@@ -97,13 +99,15 @@ export default function AssessmentReviewPage() {
     });
 
     setSubmissions(formatted);
+    setCached("admin_assessments_list", formatted);
     setLoading(false);
   };
 
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) {
         router.push("/login");
         return;
@@ -127,6 +131,8 @@ export default function AssessmentReviewPage() {
         throw new Error(errJson?.error || "Evaluation failed.");
       }
 
+      invalidateCache("admin_assessments");
+      invalidateCache("admin_dashboard");
       await fetchSubmissionsAndAssessments();
     } catch (err: any) {
       alert(err.message || "Could not evaluate submission.");
@@ -190,6 +196,8 @@ export default function AssessmentReviewPage() {
 
       setOverrideModal(null);
       setOverrideReason("");
+      invalidateCache("admin_assessments");
+      invalidateCache("admin_dashboard");
       fetchSubmissionsAndAssessments();
     } catch (err: any) {
       setOverrideError(err.message || "Failed to record mark override.");
@@ -218,6 +226,8 @@ export default function AssessmentReviewPage() {
       if (viewModal?.submission_id === deleteTarget.submission_id) {
         setViewModal(null);
       }
+      invalidateCache("admin_assessments");
+      invalidateCache("admin_dashboard");
       fetchSubmissionsAndAssessments();
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete submission.");
@@ -241,7 +251,7 @@ export default function AssessmentReviewPage() {
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            🤖 Ollama Qwen 3.5:9B Active
+            🤖 Ollama Qwen 3.5:4B Active
           </div>
         </div>
         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached } from "@/lib/cache";
 import { motion } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -22,37 +23,48 @@ interface DashboardMetrics {
 
 export default function ProfessorDashboardPage() {
   const router = useRouter();
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalStudents: 0,
-    totalSessions: 0,
-    openSessions: 0,
-    closedSessions: 0,
-    totalSubmissions: 0,
-    completedAssessments: 0,
-    pendingAssessments: 0,
-    needsReviewAssessments: 0,
-    failedAssessments: 0,
-    averageMark: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const cachedMetrics = getCached<DashboardMetrics>("admin_dashboard_metrics");
+  const [metrics, setMetrics] = useState<DashboardMetrics>(
+    cachedMetrics || {
+      totalStudents: 0,
+      totalSessions: 0,
+      openSessions: 0,
+      closedSessions: 0,
+      totalSubmissions: 0,
+      completedAssessments: 0,
+      pendingAssessments: 0,
+      needsReviewAssessments: 0,
+      failedAssessments: 0,
+      averageMark: 0,
+    }
+  );
+  const [loading, setLoading] = useState(!cachedMetrics);
 
   useEffect(() => {
     async function loadMetrics() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      // Use local session first (0ms) rather than waiting for remote getUser() roundtrip
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
 
       if (!user) {
         router.push("/login");
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("auth_user_id", user.id)
-        .single();
+      // Check cached role to avoid sequential roundtrip
+      let role = getCached<string>(`user_role_${user.id}`);
+      if (!role) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("auth_user_id", user.id)
+          .single();
+        role = profile?.role;
+        if (role) setCached(`user_role_${user.id}`, role);
+      }
 
-      if (profile?.role !== "PROFESSOR") {
+      if (role !== "PROFESSOR") {
         router.push("/login");
         return;
       }
@@ -95,7 +107,7 @@ export default function ProfessorDashboardPage() {
 
       const avg = completed > 0 ? Number((sumMarks / completed).toFixed(2)) : 0;
 
-      setMetrics({
+      const newMetrics: DashboardMetrics = {
         totalStudents: studentCount || 0,
         totalSessions: totalSess,
         openSessions: openSess,
@@ -106,8 +118,10 @@ export default function ProfessorDashboardPage() {
         needsReviewAssessments: needsReview,
         failedAssessments: failed,
         averageMark: avg,
-      });
+      };
 
+      setMetrics(newMetrics);
+      setCached("admin_dashboard_metrics", newMetrics);
       setLoading(false);
     }
 

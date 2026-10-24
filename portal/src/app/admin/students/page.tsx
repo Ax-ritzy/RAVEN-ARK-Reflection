@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached, invalidateCache } from "@/lib/cache";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -45,9 +46,10 @@ export default function StudentManagementPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const cachedStudents = getCached<StudentProfile[]>("admin_students_list");
+  const [students, setStudents] = useState<StudentProfile[]>(cachedStudents || []);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedStudents);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Single Student Creation Modal State
@@ -90,14 +92,18 @@ export default function StudentManagementPage() {
       .in("role", ["STUDENT", "REFERENCE_CONTRIBUTOR"])
       .order("created_at", { ascending: false });
 
-    setStudents(data || []);
+    if (data) {
+      setStudents(data);
+      setCached("admin_students_list", data);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) {
         router.push("/login");
         return;
@@ -147,6 +153,8 @@ export default function StudentManagementPage() {
         message: `Successfully created and provisioned student ${fullName.trim()} (${usn.trim().toUpperCase()}).`,
       });
 
+      invalidateCache("admin_students");
+      invalidateCache("admin_dashboard");
       fetchStudents();
     } catch (err: any) {
       setModalError(err.message || "An unexpected error occurred.");
@@ -284,6 +292,8 @@ export default function StudentManagementPage() {
       }
 
       setImportSummary(data);
+      invalidateCache("admin_students");
+      invalidateCache("admin_dashboard");
       fetchStudents();
 
       if (data.successCount > 0) {
@@ -347,6 +357,7 @@ export default function StudentManagementPage() {
         type: "success",
         message: `Successfully updated student record for ${editFullName} (${editUsn.toUpperCase()}).`,
       });
+      invalidateCache("admin_students");
       fetchStudents();
     } catch (err: any) {
       setEditError(err.message || "Failed to update student record.");
@@ -388,6 +399,8 @@ export default function StudentManagementPage() {
         type: "success",
         message: `Permanently removed student ${deletedName}.`,
       });
+      invalidateCache("admin_students");
+      invalidateCache("admin_dashboard");
       fetchStudents();
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete student record.");
@@ -397,7 +410,7 @@ export default function StudentManagementPage() {
   };
 
   const toggleStatus = async (studentId: string, currentStatus: "ACTIVE" | "SUSPENDED") => {
-    const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    const newStatus: "ACTIVE" | "SUSPENDED" = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
@@ -405,9 +418,11 @@ export default function StudentManagementPage() {
       .eq("id", studentId);
 
     if (!error) {
-      setStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? { ...s, status: newStatus } : s))
-      );
+      setStudents((prev) => {
+        const updated: StudentProfile[] = prev.map((s) => (s.id === studentId ? { ...s, status: newStatus } : s));
+        setCached("admin_students_list", updated);
+        return updated;
+      });
     }
   };
 

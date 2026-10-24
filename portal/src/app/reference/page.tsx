@@ -56,7 +56,8 @@ export default function ReferenceContributorPortalPage() {
   useEffect(() => {
     async function init() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
 
       if (!user) {
         router.push("/login");

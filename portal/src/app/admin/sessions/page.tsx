@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached, invalidateCache } from "@/lib/cache";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -20,9 +21,11 @@ interface SessionDetail {
 
 export default function SessionManagementPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<SessionDetail[]>([]);
-  const [availableReferences, setAvailableReferences] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedSessions = getCached<SessionDetail[]>("admin_sessions_list");
+  const cachedRefs = getCached<any[]>("admin_available_references");
+  const [sessions, setSessions] = useState<SessionDetail[]>(cachedSessions || []);
+  const [availableReferences, setAvailableReferences] = useState<any[]>(cachedRefs || []);
+  const [loading, setLoading] = useState(!cachedSessions);
 
   // Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -90,13 +93,16 @@ export default function SessionManagementPage() {
     }));
 
     setSessions(enriched);
+    setCached("admin_sessions_list", enriched);
+    setCached("admin_available_references", refData || []);
     setLoading(false);
   };
 
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) {
         router.push("/login");
         return;
@@ -163,6 +169,8 @@ export default function SessionManagementPage() {
     setNewSessionName("");
     setSelectedRefIds([]);
     setSaving(false);
+    invalidateCache("admin_sessions");
+    invalidateCache("admin_dashboard");
     fetchSessions();
   };
 
@@ -214,6 +222,7 @@ export default function SessionManagementPage() {
       }
 
       setEditSession(null);
+      invalidateCache("admin_sessions");
       fetchSessions();
     } catch (err: any) {
       setEditError(err.message || "Failed to update session.");
@@ -238,6 +247,8 @@ export default function SessionManagementPage() {
       if (error) throw new Error(error.message);
 
       setDeleteTarget(null);
+      invalidateCache("admin_sessions");
+      invalidateCache("admin_dashboard");
       fetchSessions();
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete session.");
@@ -247,7 +258,7 @@ export default function SessionManagementPage() {
   };
 
   const toggleStatus = async (sessionId: string, currentStatus: "OPEN" | "CLOSED") => {
-    const nextStatus = currentStatus === "OPEN" ? "CLOSED" : "OPEN";
+    const nextStatus: "OPEN" | "CLOSED" = currentStatus === "OPEN" ? "CLOSED" : "OPEN";
     const supabase = createClient();
     const { error } = await supabase
       .from("sessions")
@@ -255,9 +266,12 @@ export default function SessionManagementPage() {
       .eq("id", sessionId);
 
     if (!error) {
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, status: nextStatus } : s))
-      );
+      setSessions((prev) => {
+        const updated: SessionDetail[] = prev.map((s) => (s.id === sessionId ? { ...s, status: nextStatus } : s));
+        setCached("admin_sessions_list", updated);
+        return updated;
+      });
+      invalidateCache("admin_dashboard");
     }
   };
 

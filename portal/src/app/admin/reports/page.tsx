@@ -3,15 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached } from "@/lib/cache";
 import { motion } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
 
 export default function ReportsExportPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [studentCount, setStudentCount] = useState<number>(0);
-  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const cachedSessions = getCached<any[]>("admin_reports_sessions");
+  const cachedCount = getCached<number>("admin_reports_student_count");
+  const [sessions, setSessions] = useState<any[]>(cachedSessions || []);
+  const [studentCount, setStudentCount] = useState<number>(cachedCount || 0);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+    cachedSessions && cachedSessions.length > 0 ? cachedSessions[0].id : ""
+  );
   const [exportingSession, setExportingSession] = useState(false);
   const [exportingMaster, setExportingMaster] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -19,7 +24,8 @@ export default function ReportsExportPage() {
   useEffect(() => {
     async function loadSessions() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) {
         router.push("/login");
         return;
@@ -38,10 +44,12 @@ export default function ReportsExportPage() {
 
       if (data && data.length > 0) {
         setSessions(data);
-        setSelectedSessionId(data[0].id);
+        setCached("admin_reports_sessions", data);
+        setSelectedSessionId((prev) => (prev ? prev : data[0].id));
       }
 
       setStudentCount(count || 0);
+      setCached("admin_reports_student_count", count || 0);
     }
     loadSessions();
   }, [router]);

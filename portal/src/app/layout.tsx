@@ -71,6 +71,7 @@ export default function RootLayout({
               {/* Logo Brand */}
               <Link
                 href={isAdmin ? "/admin/dashboard" : isStudent ? "/student/dashboard" : isReference ? "/reference" : "/login"}
+                prefetch={true}
                 className="flex items-center space-x-3 group"
               >
                 <motion.div
@@ -116,6 +117,7 @@ export default function RootLayout({
                         <Link
                           key={tab.href}
                           href={tab.href}
+                          prefetch={true}
                           className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-150 ${
                             active
                               ? "text-slate-900 dark:text-white bg-peach-100/90 dark:bg-gradient-to-r dark:from-red-500/25 dark:via-pink-500/25 dark:to-purple-500/25 border border-peach-300 dark:border-pink-500/40 font-bold shadow-sm dark:shadow-md shadow-pink-500/10"
@@ -133,6 +135,7 @@ export default function RootLayout({
                   <div className="flex items-center space-x-2">
                     <Link
                       href="/student/dashboard"
+                      prefetch={true}
                       className="px-3.5 py-1.5 rounded-xl text-cool-600 dark:text-cyan-300 bg-cool-50 dark:bg-cyan-950/40 font-bold border border-cool-200 dark:border-cyan-500/30"
                     >
                       My Sessions
@@ -165,6 +168,7 @@ export default function RootLayout({
                 ) : (
                   <Link
                     href="/login"
+                    prefetch={true}
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 hover:opacity-90 text-white shadow-md dark:shadow-lg shadow-pink-500/25 transition"
                   >
                     Sign In

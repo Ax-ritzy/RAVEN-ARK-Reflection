@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getCached, setCached, invalidateCache } from "@/lib/cache";
 import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
@@ -21,8 +22,9 @@ interface ReferenceMaterial {
 
 export default function ReferenceLibraryPage() {
   const router = useRouter();
-  const [references, setReferences] = useState<ReferenceMaterial[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedReferences = getCached<ReferenceMaterial[]>("admin_references_list");
+  const [references, setReferences] = useState<ReferenceMaterial[]>(cachedReferences || []);
+  const [loading, setLoading] = useState(!cachedReferences);
 
   // Create Reference Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -81,13 +83,15 @@ export default function ReferenceLibraryPage() {
     });
 
     setReferences(formatted);
+    setCached("admin_references_list", formatted);
     setLoading(false);
   };
 
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) {
         router.push("/login");
         return;
@@ -246,6 +250,8 @@ export default function ReferenceLibraryPage() {
       setReferenceText("");
       setExtractedKeywords([]);
       setDocCharCount(0);
+      invalidateCache("admin_references");
+      invalidateCache("admin_sessions");
       fetchReferences();
     } catch (err: any) {
       setModalError(err.message || "Failed to save reference material");
@@ -317,6 +323,8 @@ export default function ReferenceLibraryPage() {
       if (kwErr) throw new Error(kwErr.message);
 
       setEditReference(null);
+      invalidateCache("admin_references");
+      invalidateCache("admin_sessions");
       fetchReferences();
     } catch (err: any) {
       setEditError(err.message || "Failed to update reference material");
@@ -341,6 +349,8 @@ export default function ReferenceLibraryPage() {
       if (error) throw new Error(error.message);
 
       setDeleteTarget(null);
+      invalidateCache("admin_references");
+      invalidateCache("admin_sessions");
       fetchReferences();
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete reference material.");
