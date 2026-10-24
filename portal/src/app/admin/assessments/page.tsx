@@ -101,13 +101,16 @@ export default function AssessmentReviewPage() {
   };
 
   useEffect(() => {
-    const supabase = createClient();
-    fetchSubmissionsAndAssessments();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
+        return;
       }
-    });
+      fetchSubmissionsAndAssessments();
+    }
+    checkAuth();
   }, [router]);
 
   const handleEvaluateSubmission = async (submissionId: string, forceQwen: boolean = true) => {
@@ -304,7 +307,7 @@ export default function AssessmentReviewPage() {
                       <td className="py-3.5 px-4 font-mono">
                         {s.assessment_id ? (
                           <span className="px-2.5 py-1 rounded-lg bg-cool-50 dark:bg-cyan-950/40 border border-cool-200/80 dark:border-cyan-500/30 text-cool-800 dark:text-cyan-300 font-bold">
-                            {s.reference_score} / 15
+                            {s.reference_score} / {s.reference_score > 5 ? 15 : 5}
                           </span>
                         ) : (
                           <span className="text-slate-400 italic">Not evaluated</span>
@@ -457,7 +460,7 @@ export default function AssessmentReviewPage() {
                       Matched Keywords
                     </span>
                     <span className="text-2xl font-black text-cool-900 dark:text-cyan-300 font-mono">
-                      {viewModal.reference_score} / 15
+                      {viewModal.reference_score} / {viewModal.reference_score > 5 ? 15 : 5}
                     </span>
                   </div>
                   <div className="bg-peach-50/80 dark:bg-pink-950/40 p-3.5 rounded-xl border border-peach-200 dark:border-pink-500/30 text-center">

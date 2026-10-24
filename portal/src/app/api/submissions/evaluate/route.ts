@@ -148,8 +148,9 @@ export async function POST(req: NextRequest) {
               .map((k: string) => k.toLowerCase().trim())
               .filter((k: string) => cleanKeywords.includes(k));
             const uniqueMatched = Array.from(new Set(matched));
+            const totalKw = cleanKeywords.length > 0 ? cleanKeywords.length : 5;
             const score = uniqueMatched.length;
-            const mark = Number((score / 3.0).toFixed(2));
+            const mark = Number((score * (5.0 / totalKw)).toFixed(2));
 
             assessResult = {
               selected_reference_id: chosenRef.id,
@@ -170,8 +171,9 @@ export async function POST(req: NextRequest) {
 
     // 3. Step C: Deterministic Local Fallback (Guaranteed to succeed)
     if (!assessResult) {
+      const totalKw = chosenRef.keywords.length > 0 ? chosenRef.keywords.length : 5;
       const refScore = chosenRefMatchedKeywords.length;
-      const mark = Number((refScore / 3.0).toFixed(2));
+      const mark = Number((refScore * (5.0 / totalKw)).toFixed(2));
 
       assessResult = {
         selected_reference_id: chosenRef.id,

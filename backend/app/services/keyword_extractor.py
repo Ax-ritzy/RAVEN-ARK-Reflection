@@ -77,14 +77,14 @@ def normalize_stem(word: str) -> str:
         
     return w
 
-def extract_top_15_keywords(text: str) -> List[str]:
+def extract_top_keywords(text: str, count: int = 5) -> List[str]:
     """
-    Statistically extracts exactly 15 authoritative, subject-specific keywords
+    Statistically extracts authoritative, subject-specific keywords (default 5)
     from an authoritative lecture document.
     
     Guarantees:
     1. ZERO forbidden stopwords (e.g., 'as', 'a', 'is', 'the', 'for', 'have', 'that').
-    2. Exactly 15 distinct, lowercase terms.
+    2. Exactly `count` distinct, lowercase terms.
     3. Scores candidates using term frequency, capitalized title emphasis, and technical word length.
     4. Deterministic and instantaneous (runs in milliseconds without external AI).
     """
@@ -140,7 +140,7 @@ def extract_top_15_keywords(text: str) -> List[str]:
         reverse=True
     )
 
-    # Collect up to 15 distinct keywords
+    # Collect up to `count` distinct keywords
     keywords: List[str] = []
     seen: Set[str] = set()
 
@@ -148,28 +148,35 @@ def extract_top_15_keywords(text: str) -> List[str]:
         if candidate not in seen and candidate not in FORBIDDEN_STOPWORDS:
             seen.add(candidate)
             keywords.append(candidate)
-            if len(keywords) == 15:
+            if len(keywords) == count:
                 break
 
-    # Fallback padding if a very short document yielded fewer than 15 words:
-    # Scan raw words with relaxed length criteria, ensuring NO stopwords enter.
-    if len(keywords) < 15:
+    # Fallback padding if a very short document yielded fewer than `count` words:
+    if len(keywords) < count:
         all_words = re.findall(r'\b[a-z]{3,}\b', text.lower())
         for w in all_words:
             norm = normalize_stem(w)
             if norm not in seen and norm not in FORBIDDEN_STOPWORDS and len(norm) >= 3:
                 seen.add(norm)
                 keywords.append(norm)
-                if len(keywords) == 15:
+                if len(keywords) == count:
                     break
 
-    # If still under 15 (e.g. extremely tiny document), generate domain-specific indexed anchors
+    # If still under `count` (e.g. extremely tiny document), generate domain-specific indexed anchors
     idx = 1
-    while len(keywords) < 15:
+    while len(keywords) < count:
         placeholder = f"concept_{idx}"
         if placeholder not in seen:
             seen.add(placeholder)
             keywords.append(placeholder)
         idx += 1
 
-    return keywords[:15]
+    return keywords[:count]
+
+def extract_top_5_keywords(text: str) -> List[str]:
+    """Helper alias for standard 5-keyword extraction."""
+    return extract_top_keywords(text, count=5)
+
+def extract_top_15_keywords(text: str) -> List[str]:
+    """Legacy helper alias for 15-keyword extraction."""
+    return extract_top_keywords(text, count=15)

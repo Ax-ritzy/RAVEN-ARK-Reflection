@@ -17,7 +17,7 @@ from app.services.extractor import (
     ExtractionError, 
     CharacterLimitExceededError
 )
-from app.services.keyword_extractor import extract_top_15_keywords
+from app.services.keyword_extractor import extract_top_15_keywords, extract_top_keywords
 from app.services.similarity import select_best_reference
 from app.services.scorer import calculate_deterministic_score, ScoringError
 from app.services.ollama_evaluator import evaluate_with_qwen
@@ -112,7 +112,8 @@ async def extract_document(
 @router.post("/api/references/extract-keywords")
 async def extract_reference_keywords(
     file: UploadFile = File(...),
-    title: Optional[str] = Form(None)
+    title: Optional[str] = Form(None),
+    keyword_count: Optional[int] = Form(5)
 ):
     try:
         content = await file.read()
@@ -120,7 +121,8 @@ async def extract_reference_keywords(
             filename=file.filename or "reference_document.txt",
             file_bytes=content
         )
-        keywords = extract_top_15_keywords(extracted_text)
+        count = keyword_count if (keyword_count and keyword_count in (5, 15)) else 5
+        keywords = extract_top_keywords(extracted_text, count=count)
         return {
             "filename": file.filename,
             "title": title or (file.filename.rsplit(".", 1)[0] if file.filename else "Reference Material"),

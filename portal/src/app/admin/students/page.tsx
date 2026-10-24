@@ -13,6 +13,7 @@ interface StudentProfile {
   auth_user_id?: string;
   usn: string;
   full_name: string;
+  role?: "STUDENT" | "REFERENCE_CONTRIBUTOR";
   status: "ACTIVE" | "SUSPENDED";
   created_at: string;
 }
@@ -55,6 +56,7 @@ export default function StudentManagementPage() {
   const [usn, setUsn] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accountRole, setAccountRole] = useState<"STUDENT" | "REFERENCE_CONTRIBUTOR">("STUDENT");
   const [provisioning, setProvisioning] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -84,8 +86,8 @@ export default function StudentManagementPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("profiles")
-      .select("id, auth_user_id, usn, full_name, status, created_at")
-      .eq("role", "STUDENT")
+      .select("id, auth_user_id, usn, full_name, role, status, created_at")
+      .in("role", ["STUDENT", "REFERENCE_CONTRIBUTOR"])
       .order("created_at", { ascending: false });
 
     setStudents(data || []);
@@ -93,13 +95,16 @@ export default function StudentManagementPage() {
   };
 
   useEffect(() => {
-    const supabase = createClient();
-    fetchStudents();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
+        return;
       }
-    });
+      fetchStudents();
+    }
+    checkAuth();
   }, [router]);
 
   // Single Student Creation
@@ -123,7 +128,7 @@ export default function StudentManagementPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fullName, usn, email, password }),
+        body: JSON.stringify({ fullName, usn, email, password, role: accountRole }),
       });
 
       const result = await res.json();
@@ -571,9 +576,16 @@ export default function StudentManagementPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-cyan-300 font-bold border border-slate-200 dark:border-slate-800 text-[11px]">
-                          {s.usn || "N/A"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-cyan-300 font-bold border border-slate-200 dark:border-slate-800 text-[11px]">
+                            {s.usn || "N/A"}
+                          </span>
+                          {s.role === "REFERENCE_CONTRIBUTOR" && (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                              Ref Contributor
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6">
                         <button
@@ -659,6 +671,41 @@ export default function StudentManagementPage() {
         )}
 
         <form onSubmit={handleCreateStudent} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+              Account Role / Authorization
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAccountRole("STUDENT")}
+                className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                  accountRole === "STUDENT"
+                    ? "bg-cyan-50 dark:bg-cyan-950/60 border-cyan-400 text-cyan-800 dark:text-cyan-300 shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                }`}
+              >
+                🎓 Student (Reflections)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountRole("REFERENCE_CONTRIBUTOR")}
+                className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                  accountRole === "REFERENCE_CONTRIBUTOR"
+                    ? "bg-purple-50 dark:bg-purple-950/60 border-purple-400 text-purple-800 dark:text-purple-300 shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                }`}
+              >
+                📚 Ref Contributor (Uploads)
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {accountRole === "STUDENT"
+                ? "Submits reflections for evaluation via Student Portal."
+                : "Authorized exclusively to upload authoritative reference notes via Reference Portal."}
+            </p>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
               Full Legal Name

@@ -54,6 +54,8 @@ export default function UnifiedLoginPage() {
         router.push("/admin/dashboard");
       } else if (profile.role === "STUDENT") {
         router.push("/student/dashboard");
+      } else if (profile.role === "REFERENCE_CONTRIBUTOR") {
+        router.push("/reference");
       } else {
         setErrorMsg(`Unknown role: ${profile.role}`);
         setLoading(false);
@@ -142,13 +144,28 @@ export default function UnifiedLoginPage() {
           </form>
 
           {/* Quick Info Badges */}
-          <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-peach-50 dark:bg-red-950/40 text-peach-800 dark:text-red-300 border border-peach-200 dark:border-red-500/30">
-              🛡️ Faculty Route
-            </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30">
-              🎓 Student Route
-            </span>
+          <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold">
+              <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-peach-50 dark:bg-red-950/40 text-peach-800 dark:text-red-300 border border-peach-200 dark:border-red-500/30">
+                🛡️ Faculty
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30">
+                🎓 Student
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                📚 Reference
+              </span>
+            </div>
+
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => router.push("/reference/login")}
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition underline underline-offset-4"
+              >
+                Access dedicated Reference Upload Portal &rarr;
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>

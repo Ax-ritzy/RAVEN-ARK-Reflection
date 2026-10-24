@@ -55,7 +55,7 @@ export default function SessionManagementPage() {
       { data: sessRefs },
     ] = await Promise.all([
       supabase.from("sessions").select("id, name, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("reference_materials").select("id, name"),
+      supabase.from("reference_materials").select("id, name, created_at"),
       supabase.from("submissions").select("session_id"),
       supabase.from("session_references").select("session_id, reference_id, reference_materials(name)"),
     ]);
@@ -94,13 +94,16 @@ export default function SessionManagementPage() {
   };
 
   useEffect(() => {
-    const supabase = createClient();
-    fetchSessions();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
+        return;
       }
-    });
+      fetchSessions();
+    }
+    checkAuth();
   }, [router]);
 
   const handleCreateSession = async (e: React.FormEvent) => {
@@ -258,6 +261,22 @@ export default function SessionManagementPage() {
     }
   };
 
+  const openCreateModal = () => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const autoSelected = (availableReferences || [])
+      .filter((r) => {
+        if (!r.created_at) return false;
+        const refDate = new Date(r.created_at).toISOString().split("T")[0];
+        return refDate === todayStr;
+      })
+      .map((r) => r.id);
+
+    setSelectedRefIds(autoSelected);
+    setNewSessionName("");
+    setModalError(null);
+    setShowCreateModal(true);
+  };
+
   const toggleCreateRef = (refId: string) => {
     setSelectedRefIds((prev) =>
       prev.includes(refId) ? prev.filter((id) => id !== refId) : [...prev, refId]
@@ -293,10 +312,7 @@ export default function SessionManagementPage() {
         </div>
 
         <InteractiveButton
-          onClick={() => {
-            setShowCreateModal(true);
-            setModalError(null);
-          }}
+          onClick={openCreateModal}
           variant="primary"
           icon={
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,10 +338,7 @@ export default function SessionManagementPage() {
               Create an academic session to allow students to submit their reflection assignments.
             </p>
             <InteractiveButton
-              onClick={() => {
-                setShowCreateModal(true);
-                setModalError(null);
-              }}
+              onClick={openCreateModal}
               variant="primary"
             >
               Create First Session
@@ -470,34 +483,53 @@ export default function SessionManagementPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-              Link Reference Materials (Multi-Reference Support)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Link Reference Materials (Multi-Reference Support)
+              </label>
+              <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                {selectedRefIds.length} Selected
+              </span>
+            </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-              System will evaluate student submissions against the reference with the highest semantic cosine match.
+              System will evaluate student submissions against the reference with highest semantic cosine match. Reference materials uploaded today are pre-selected automatically.
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {availableReferences.length === 0 ? (
                 <p className="text-xs text-slate-400 italic">No reference materials available.</p>
               ) : (
-                availableReferences.map((r) => (
-                  <label
-                    key={r.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl border text-xs cursor-pointer transition ${
-                      selectedRefIds.includes(r.id)
-                        ? "bg-peach-50/80 dark:bg-red-950/40 border-peach-300 dark:border-red-500/40 text-peach-900 dark:text-red-300 font-semibold"
-                        : "bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedRefIds.includes(r.id)}
-                      onChange={() => toggleCreateRef(r.id)}
-                      className="rounded text-pink-500 focus:ring-pink-500 w-4 h-4"
-                    />
-                    <span>{r.name}</span>
-                  </label>
-                ))
+                availableReferences.map((r) => {
+                  const isToday =
+                    r.created_at &&
+                    new Date(r.created_at).toISOString().split("T")[0] ===
+                      new Date().toISOString().split("T")[0];
+
+                  return (
+                    <label
+                      key={r.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition ${
+                        selectedRefIds.includes(r.id)
+                          ? "bg-peach-50/80 dark:bg-red-950/40 border-peach-300 dark:border-red-500/40 text-peach-900 dark:text-red-300 font-semibold"
+                          : "bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRefIds.includes(r.id)}
+                          onChange={() => toggleCreateRef(r.id)}
+                          className="rounded text-pink-500 focus:ring-pink-500 w-4 h-4"
+                        />
+                        <span>{r.name}</span>
+                      </div>
+                      {isToday && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-600/40">
+                          📅 Today&apos;s Upload
+                        </span>
+                      )}
+                    </label>
+                  );
+                })
               )}
             </div>
           </div>

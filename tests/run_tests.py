@@ -60,6 +60,16 @@ def test_scoring_deterministic_formula():
     assert res_repeat["reference_score"] == 3, f"Expected 3 distinct matches, got {res_repeat['reference_score']}"
     assert res_repeat["calculated_mark"] == 1.00, f"Expected 1.00, got {res_repeat['calculated_mark']}"
 
+    # Test Case 6: 5-Keywords Architecture Validation (5 matches = 5.00, 3 matches = 3.00, 1 match = 1.00)
+    kw5 = ["optimization", "gradient", "backpropagation", "weights", "convergence"]
+    res5_all = calculate_deterministic_score("Optimization using gradient and backpropagation updates weights towards convergence.", kw5)
+    assert res5_all["reference_score"] == 5, f"Expected 5, got {res5_all['reference_score']}"
+    assert res5_all["calculated_mark"] == 5.00, f"Expected 5.00, got {res5_all['calculated_mark']}"
+
+    res5_3 = calculate_deterministic_score("Optimization with gradient and weights.", kw5)
+    assert res5_3["reference_score"] == 3, f"Expected 3, got {res5_3['reference_score']}"
+    assert res5_3["calculated_mark"] == 3.00, f"Expected 3.00, got {res5_3['calculated_mark']}"
+
     print("  --> PASS: Deterministic scoring formula and repeated keyword rules verified.")
 
 def test_keyword_validation_stopwords():

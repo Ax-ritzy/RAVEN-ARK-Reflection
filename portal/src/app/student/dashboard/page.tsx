@@ -34,15 +34,9 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     async function loadData() {
       const supabase = createClient();
-      
-      // 1. Kick off sessions query immediately without waiting for auth
-      const sessionRowsPromise = supabase
-        .from("sessions")
-        .select("id, name, status, created_at")
-        .order("created_at", { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!user) {
         router.push("/login");
         return;
       }
@@ -50,7 +44,7 @@ export default function StudentDashboardPage() {
       const { data: profile } = await supabase
         .from("profiles")
         .select("id, full_name, usn, role")
-        .eq("auth_user_id", session.user.id)
+        .eq("auth_user_id", user.id)
         .single();
 
       if (!profile || profile.role !== "STUDENT") {
@@ -61,15 +55,18 @@ export default function StudentDashboardPage() {
       setStudentUsn(profile.usn || "");
       setStudentName(profile.full_name);
 
-      // Concurrently await sessions and student submissions
+      // Concurrently fetch sessions and student's submissions in parallel
       const [{ data: sessionRows }, { data: submissionRows }] = await Promise.all([
-        sessionRowsPromise,
+        supabase
+          .from("sessions")
+          .select("id, name, status, created_at")
+          .order("created_at", { ascending: false }),
         supabase
           .from("submissions")
           .select(`
-            id, session_id, status, submitted_at,
-            assessments ( final_approved_mark, reference_score, status )
-          `)
+          id, session_id, status, submitted_at,
+          assessments ( final_approved_mark, reference_score, status )
+        `)
           .eq("student_id", profile.id),
       ]);
 

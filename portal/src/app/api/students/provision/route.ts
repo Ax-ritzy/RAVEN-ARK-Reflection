@@ -15,11 +15,6 @@ async function verifyProfessorCaller(req: NextRequest) {
     return { error: "Unauthorized caller", status: 401 };
   }
 
-  // Fast path: User metadata contains role (saves 1 round-trip)
-  if (user.user_metadata?.role === "PROFESSOR" || user.app_metadata?.role === "PROFESSOR") {
-    return { admin, user };
-  }
-
   const { data: callerProfile } = await admin
     .from("profiles")
     .select("role")
@@ -43,7 +38,7 @@ export async function POST(req: NextRequest) {
     const { admin } = authCheck;
 
     const body = await req.json();
-    const { fullName, usn, email, password } = body;
+    const { fullName, usn, email, password, role } = body;
 
     if (!fullName || !usn || !email || !password) {
       return NextResponse.json(
@@ -53,6 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanUsn = usn.trim().toUpperCase();
+    const assignedRole = role === "REFERENCE_CONTRIBUTOR" ? "REFERENCE_CONTRIBUTOR" : "STUDENT";
 
     // Check for duplicate USN
     const { data: existingProfile } = await admin
@@ -63,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     if (existingProfile) {
       return NextResponse.json(
-        { error: `A student with USN '${cleanUsn}' already exists in the roster.` },
+        { error: `An account with USN '${cleanUsn}' already exists in the roster.` },
         { status: 409 }
       );
     }
@@ -75,7 +71,7 @@ export async function POST(req: NextRequest) {
       email_confirm: true,
       user_metadata: {
         full_name: fullName.trim(),
-        role: "STUDENT",
+        role: assignedRole,
         usn: cleanUsn,
       },
     });
@@ -87,17 +83,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create linked Student Profile in PostgreSQL
+    // Create linked Profile in PostgreSQL
     const { data: profileRecord, error: profileInsertError } = await admin
       .from("profiles")
       .insert({
         auth_user_id: newAuthUser.user.id,
-        role: "STUDENT",
+        role: assignedRole,
         usn: cleanUsn,
         full_name: fullName.trim(),
         status: "ACTIVE",
       })
-      .select("id, auth_user_id, usn, full_name, status, created_at")
+      .select("id, auth_user_id, usn, full_name, role, status, created_at")
       .single();
 
     if (profileInsertError) {
@@ -245,16 +241,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Student profile not found" }, { status: 404 });
     }
 
-    if (profile.role !== "STUDENT") {
-      return NextResponse.json({ error: "Forbidden: Cannot delete non-student accounts" }, { status: 403 });
+    if (profile.role !== "STUDENT" && profile.role !== "REFERENCE_CONTRIBUTOR") {
+      return NextResponse.json({ error: "Forbidden: Cannot delete non-student/contributor accounts" }, { status: 403 });
     }
 
-    // If student has an auth_user_id, delete via Supabase Admin API (cascades in DB)
+    // If student has an auth_user_id, delete via Supabase Admin API
     if (profile.auth_user_id) {
       await admin.auth.admin.deleteUser(profile.auth_user_id);
-    } else {
-      await admin.from("profiles").delete().eq("id", studentId);
     }
+
+    // Also delete profile row explicitly in case auth_user_id was null or already deleted
+    await admin.from("profiles").delete().eq("id", studentId);
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
@@ -19,6 +18,7 @@ interface ResultData {
   originalAiMark: number;
   hasOverride: boolean;
   matchedKeywords: string[];
+  totalKeywords: number;
 }
 
 export default function StudentResultsPage() {
@@ -82,6 +82,31 @@ export default function StudentResultsPage() {
       const origMark = assessment ? Number(assessment.original_ai_mark) : 0;
       const finalMark = assessment ? Number(assessment.final_approved_mark) : 0;
 
+      // Query linked reference materials to determine total calibrated keywords
+      const { data: sessRefs } = await supabase
+        .from("session_references")
+        .select(`
+          reference_materials (
+            reference_keyword_sets ( keywords, is_active )
+          )
+        `)
+        .eq("session_id", sessionId);
+
+      let totalKeywords = 5;
+      if (sessRefs && sessRefs.length > 0) {
+        for (const sr of sessRefs as any[]) {
+          const kwSets = sr.reference_materials?.reference_keyword_sets || [];
+          const activeSet = kwSets.find((k: any) => k.is_active) || kwSets[0];
+          if (activeSet?.keywords?.length) {
+            totalKeywords = activeSet.keywords.length;
+            break;
+          }
+        }
+      }
+      if (assessment?.matched_keywords?.length > totalKeywords) {
+        totalKeywords = assessment.matched_keywords.length;
+      }
+
       setResult({
         sessionName: session?.name || "Assessment Session",
         submissionStatus: submission.status,
@@ -94,6 +119,7 @@ export default function StudentResultsPage() {
         finalApprovedMark: finalMark,
         hasOverride: Math.abs(finalMark - origMark) > 0.001,
         matchedKeywords: assessment?.matched_keywords || [],
+        totalKeywords,
       });
 
       setLoading(false);
@@ -115,9 +141,9 @@ export default function StudentResultsPage() {
     return (
       <GlowCard className="max-w-xl mx-auto p-8 text-center space-y-4">
         <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{errorMsg || "Unable to display result."}</p>
-        <Link href="/student/dashboard" prefetch={true} className="text-xs font-bold text-peach-600 dark:text-peach-400 hover:underline">
+        <a href="/student/dashboard" className="text-xs font-bold text-peach-600 dark:text-peach-400 hover:underline">
           &larr; Return to Dashboard
-        </Link>
+        </a>
       </GlowCard>
     );
   }
@@ -127,9 +153,9 @@ export default function StudentResultsPage() {
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <Link href="/student/dashboard" prefetch={true} className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:underline">
+          <a href="/student/dashboard" className="text-xs font-semibold text-peach-600 dark:text-peach-400 hover:underline">
             &larr; Back to Sessions
-          </Link>
+          </a>
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight mt-1">
             Reflection Evaluation
           </h1>
@@ -176,16 +202,18 @@ export default function StudentResultsPage() {
         {/* Reference Score */}
         <GlowCard glowColor="cool" className="p-7">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Reference Score (15 Keywords)
+            Reference Score ({result.totalKeywords} Keywords)
           </span>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-5xl font-black text-cool-500 dark:text-cyan-400">
               {result.assessmentStatus === "COMPLETED" ? result.referenceScore : "—"}
             </span>
-            <span className="text-base text-slate-400 dark:text-slate-500 font-bold">/ 15</span>
+            <span className="text-base text-slate-400 dark:text-slate-500 font-bold">
+              / {result.totalKeywords}
+            </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3 font-mono">
-            Deterministic Formula: Mark = Keyword Score ÷ 3.0
+            Deterministic Formula: Mark = Keyword Matches × {(5.0 / result.totalKeywords).toFixed(2)}
           </p>
         </GlowCard>
       </div>
@@ -194,7 +222,7 @@ export default function StudentResultsPage() {
       {result.matchedKeywords.length > 0 && (
         <GlowCard className="p-6">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            Matched Keywords ({result.matchedKeywords.length} of 15)
+            Matched Keywords ({result.matchedKeywords.length} of {result.totalKeywords})
           </h3>
           <div className="flex flex-wrap gap-2">
             {result.matchedKeywords.map((kw, i) => (

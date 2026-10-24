@@ -4,10 +4,6 @@
 # and automatically opens your browser.
 # =================================================================
 
-param(
-    [switch]$Prod
-)
-
 $ErrorActionPreference = "Continue"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
@@ -15,11 +11,6 @@ Set-Location $Root
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host "    LAUNCHING REFLECTION AI PLATFORM (ALL-IN-ONE)" -ForegroundColor Cyan
 Write-Host "    Root Directory: $Root" -ForegroundColor Cyan
-if ($Prod) {
-    Write-Host "    Mode: PRODUCTION (Pre-compiled, Zero-Latency AOT)" -ForegroundColor Green
-} else {
-    Write-Host "    Mode: DEVELOPMENT (Hot-Reload Enabled)" -ForegroundColor Yellow
-}
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 # 1. Check Ollama & Qwen 3.5:9B
@@ -46,15 +37,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.W
 
 # 3. Start Next.js Web Portal (Port 3000)
 Write-Host "`n[3/3] Launching Next.js Web Portal (Port 3000)..." -ForegroundColor Yellow
-if ($Prod) {
-    if (-not (Test-Path "$Root\portal\.next")) {
-        Write-Host "  --> Pre-building production bundles for 0ms navigation..." -ForegroundColor Gray
-        Start-Process powershell -ArgumentList "-Command", "cd '$Root\portal'; npm run build" -Wait
-    }
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Portal [PROD] (Port 3000)'; cd '$Root\portal'; Write-Host '--- UNIFIED REFLECTION AI PORTAL [PRODUCTION: 0ms AOT] (Port 3000) ---' -ForegroundColor Green; npm start"
-} else {
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Portal [DEV] (Port 3000)'; cd '$Root\portal'; Write-Host '--- UNIFIED REFLECTION AI PORTAL [DEVELOPMENT] (Port 3000) ---' -ForegroundColor Cyan; npm run dev"
-}
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.ui.RawUI.WindowTitle = 'Reflection AI - Portal (Port 3000)'; cd '$Root\portal'; Write-Host '--- UNIFIED REFLECTION AI PORTAL (Port 3000) ---' -ForegroundColor Cyan; npm run dev"
 
 # Wait a moment for server initialization
 Write-Host "`nWaiting for local servers to initialize..." -ForegroundColor Gray

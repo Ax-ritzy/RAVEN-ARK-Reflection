@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -19,12 +18,13 @@ export default function RootLayout({
   const router = useRouter();
   const isAdmin = pathname.startsWith("/admin");
   const isStudent = pathname.startsWith("/student");
-  const isAuthPage = pathname === "/login" || pathname === "/";
+  const isReference = pathname.startsWith("/reference");
+  const isAuthPage = pathname === "/login" || pathname === "/" || pathname === "/reference/login";
 
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push(isReference ? "/reference/login" : "/login");
   };
 
   return (
@@ -41,8 +41,8 @@ export default function RootLayout({
           <header className="sticky top-0 z-30 px-4 py-3">
             <div className="max-w-7xl mx-auto rounded-2xl glass-panel px-5 h-16 flex items-center justify-between shadow-xl dark:shadow-2xl border border-slate-200/80 dark:border-slate-800/90 transition-all duration-300">
               {/* Logo Brand */}
-              <Link
-                href={isAdmin ? "/admin/dashboard" : isStudent ? "/student/dashboard" : "/login"}
+              <a
+                href={isAdmin ? "/admin/dashboard" : isStudent ? "/student/dashboard" : isReference ? "/reference" : "/login"}
                 className="flex items-center space-x-3 group"
               >
                 <motion.div
@@ -62,14 +62,14 @@ export default function RootLayout({
                       Reflection AI
                     </span>
                     <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-peach-100/80 dark:bg-gradient-to-r dark:from-red-950/60 dark:via-purple-950/60 dark:to-cyan-950/60 text-slate-700 dark:text-pink-300 border border-peach-200/80 dark:border-pink-500/30">
-                      {isAdmin ? "Faculty Admin" : isStudent ? "Student Area" : "Unified"}
+                      {isAdmin ? "Faculty Admin" : isStudent ? "Student Area" : isReference ? "Ref Contributor" : "Unified"}
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block -mt-0.5 font-medium">
                     Academic Assessment System
                   </span>
                 </div>
-              </Link>
+              </a>
 
               {/* Nav Links & Controls */}
               <nav className="flex items-center space-x-1 sm:space-x-2 text-xs font-semibold">
@@ -85,10 +85,9 @@ export default function RootLayout({
                     ].map((tab) => {
                       const active = pathname === tab.href;
                       return (
-                        <Link
+                        <a
                           key={tab.href}
                           href={tab.href}
-                          prefetch={true}
                           className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
                             active
                               ? "text-slate-900 dark:text-white bg-peach-100/90 dark:bg-gradient-to-r dark:from-red-500/25 dark:via-pink-500/25 dark:to-purple-500/25 border border-peach-300 dark:border-pink-500/40 font-bold shadow-sm dark:shadow-md shadow-pink-500/10"
@@ -96,7 +95,7 @@ export default function RootLayout({
                           }`}
                         >
                           {tab.label}
-                        </Link>
+                        </a>
                       );
                     })}
                   </div>
@@ -104,13 +103,20 @@ export default function RootLayout({
 
                 {isStudent && (
                   <div className="flex items-center space-x-2">
-                    <Link
+                    <a
                       href="/student/dashboard"
-                      prefetch={true}
                       className="px-3.5 py-1.5 rounded-xl text-cool-600 dark:text-cyan-300 bg-cool-50 dark:bg-cyan-950/40 font-bold border border-cool-200 dark:border-cyan-500/30"
                     >
                       My Sessions
-                    </Link>
+                    </a>
+                  </div>
+                )}
+
+                {isReference && pathname !== "/reference/login" && (
+                  <div className="flex items-center space-x-2">
+                    <span className="px-3 py-1.5 rounded-xl text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 font-bold border border-purple-200 dark:border-purple-500/30 text-xs">
+                      📚 Reference Material Portal
+                    </span>
                   </div>
                 )}
 
@@ -129,12 +135,12 @@ export default function RootLayout({
                     Sign Out
                   </motion.button>
                 ) : (
-                  <Link
+                  <a
                     href="/login"
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 hover:opacity-90 text-white shadow-md dark:shadow-lg shadow-pink-500/25 transition"
                   >
                     Sign In
-                  </Link>
+                  </a>
                 )}
               </nav>
             </div>

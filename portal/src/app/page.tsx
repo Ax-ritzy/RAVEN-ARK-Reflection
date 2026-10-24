@@ -28,6 +28,8 @@ export default function RootPage() {
         router.push("/admin/dashboard");
       } else if (profile?.role === "STUDENT") {
         router.push("/student/dashboard");
+      } else if (profile?.role === "REFERENCE_CONTRIBUTOR") {
+        router.push("/reference");
       } else {
         router.push("/login");
       }

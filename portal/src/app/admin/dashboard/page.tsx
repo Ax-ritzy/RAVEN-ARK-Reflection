@@ -37,20 +37,39 @@ export default function ProfessorDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
+    async function loadMetrics() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Concurrently query institutional telemetry metrics immediately in parallel
-    Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "STUDENT"),
-      supabase.from("sessions").select("status"),
-      supabase.from("submissions").select("id", { count: "exact", head: true }),
-      supabase.from("assessments").select("status, final_approved_mark"),
-    ]).then(([
-      { count: studentCount },
-      { data: sessions },
-      { count: subCount },
-      { data: assessments },
-    ]) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (profile?.role !== "PROFESSOR") {
+        router.push("/login");
+        return;
+      }
+
+      // Concurrently query institutional telemetry metrics in parallel
+      const [
+        { count: studentCount },
+        { data: sessions },
+        { count: subCount },
+        { data: assessments },
+      ] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "STUDENT"),
+        supabase.from("sessions").select("status"),
+        supabase.from("submissions").select("id", { count: "exact", head: true }),
+        supabase.from("assessments").select("status, final_approved_mark"),
+      ]);
+
       const totalSess = sessions?.length || 0;
       const openSess = sessions?.filter((s) => s.status === "OPEN").length || 0;
       const closedSess = sessions?.filter((s) => s.status === "CLOSED").length || 0;
@@ -90,14 +109,9 @@ export default function ProfessorDashboardPage() {
       });
 
       setLoading(false);
-    });
+    }
 
-    // 2. Fast synchronous session validation
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        router.push("/login");
-      }
-    });
+    loadMetrics();
   }, [router]);
 
   return (

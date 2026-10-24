@@ -61,7 +61,7 @@ def generate_session_assessment_sheet(
         "Student USN",
         "Student Name",
         "Final Mark (/5)",
-        "Ref Score (/15)",
+        "Keyword Matches",
         "Selected Reference ID",
         "Selected Material Name",
         "Submission Status",

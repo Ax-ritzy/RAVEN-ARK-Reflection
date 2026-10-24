@@ -20,6 +20,8 @@ def evaluate_with_qwen(
     """
     timeout = timeout_seconds or settings.ollama_timeout_seconds
     clean_keywords = [str(k).strip().lower() for k in reference_keywords if str(k).strip()]
+    total_kw = len(clean_keywords) if clean_keywords else 5
+    multiplier = 5.0 / total_kw
 
     prompt_payload = {
         "model": settings.ollama_model,
@@ -28,15 +30,15 @@ def evaluate_with_qwen(
             {
                 "role": "system",
                 "content": (
-                    "You are an automated academic evaluator. Evaluate student reflections against the provided list of 15 required reference keywords. "
+                    f"You are an automated academic evaluator. Evaluate student reflections against the provided list of {total_kw} required reference keywords. "
                     "Rule 1: Award 1 mark per keyword only if that keyword (or its direct morphological inflection/adjective/plural) is meaningfully used in the reflection context. "
-                    "Rule 2: Maximum reference_score is 15 (1 mark per distinct matched keyword). "
-                    "Rule 3: calculated_mark = round(reference_score / 3.0, 2) (maximum 5.00). "
+                    f"Rule 2: Maximum reference_score is {total_kw} (1 mark per distinct matched keyword). "
+                    f"Rule 3: calculated_mark = round(reference_score * {5.0 / total_kw:.2f}, 2) (maximum 5.00). "
                     "Rule 4: Output strictly valid JSON conforming to this schema:\n"
                     "{\n"
                     '  "matched_keywords": ["keyword1", "keyword2"],\n'
-                    '  "reference_score": 2,\n'
-                    '  "calculated_mark": 0.67,\n'
+                    f'  "reference_score": {min(2, total_kw)},\n'
+                    f'  "calculated_mark": {min(2.0, round(2 * multiplier, 2))},\n'
                     '  "feedback": "1-2 sentence academic assessment of conceptual depth."\n'
                     "}"
                 )
@@ -45,7 +47,7 @@ def evaluate_with_qwen(
                 "role": "user",
                 "content": (
                     f"Reference Topic: {reference_title}\n"
-                    f"Required 15 Keywords: {json.dumps(clean_keywords)}\n\n"
+                    f"Required Keywords ({total_kw}): {json.dumps(clean_keywords)}\n\n"
                     f"Student Reflection:\n\"{reflection_text}\""
                 )
             }
@@ -82,7 +84,7 @@ def evaluate_with_qwen(
         # De-duplicate while preserving order
         matched_unique = list(dict.fromkeys(matched))
         ref_score = len(matched_unique)
-        calc_mark = round(ref_score / 3.0, 2)
+        calc_mark = round(ref_score * multiplier, 2)
         feedback = parsed.get("feedback", "Automated Qwen evaluation completed.")
 
         return {

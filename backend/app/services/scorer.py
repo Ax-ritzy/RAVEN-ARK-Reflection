@@ -8,7 +8,7 @@ class ScoringError(Exception):
 
 def validate_keyword_set(keywords: List[str]) -> List[str]:
     """
-    Validates that the provided keyword list contains exactly 15 distinct,
+    Validates that the provided keyword list contains 5 (or legacy 15) distinct,
     non-empty, non-stopword tokens. Returns the normalized distinct keywords.
     """
     cleaned: List[str] = []
@@ -24,9 +24,9 @@ def validate_keyword_set(keywords: List[str]) -> List[str]:
             seen.add(token)
             cleaned.append(token)
 
-    if len(cleaned) != 15:
+    if len(cleaned) not in (5, 15):
         raise ScoringError(
-            f"Reference keyword set must contain exactly 15 distinct, non-stopword keywords. "
+            f"Reference keyword set must contain exactly 5 (or 15) distinct, non-stopword keywords. "
             f"Found {len(cleaned)} usable keywords."
         )
 
@@ -39,10 +39,11 @@ def calculate_deterministic_score(
     """
     DETERMINISTIC SCORING ENGINE:
     1. Reference Score = number of distinct reference keywords found in the reflection.
-    2. Each distinct matched keyword contributes exactly 1 point, irrespective of frequency.
+    2. Each distinct matched keyword contributes points towards the 5.00 mark limit.
+       - For 5-keyword set: 1 match = 1.00 Mark (5 matches = 5.00 Marks).
+       - For 15-keyword set: 1 match = 1/3 Mark (15 matches = 5.00 Marks).
     3. Repeated occurrences of the same keyword do NOT earn extra points.
-    4. Reference Score is an integer from 0 to 15.
-    5. Session Mark = Reference Score / 3.0 (rounded to 2 decimal places, 0.00 to 5.00).
+    4. Session Mark is clamped between 0.00 and 5.00.
     """
     # Normalize reflection text into word tokens
     reflection_words = set(re.findall(r'\b[a-zA-Z0-9_\-]+\b', reflection_text.lower()))
@@ -62,10 +63,10 @@ def calculate_deterministic_score(
             if kw.lower() in reflection_words:
                 matched_keywords.append(kw)
 
-    reference_score = len(matched_keywords)  # 0 to 15
-    
-    # Exact Formula: Session Mark = Reference Score / 3.0
-    calculated_mark = round(reference_score / 3.0, 2)
+    reference_score = len(matched_keywords)
+    total_kw = len(valid_keywords)
+    multiplier = 5.0 / total_kw if total_kw > 0 else 1.0
+    calculated_mark = round(reference_score * multiplier, 2)
     
     # Clamp safety
     calculated_mark = max(0.00, min(5.00, calculated_mark))
@@ -74,5 +75,5 @@ def calculate_deterministic_score(
         "reference_score": reference_score,
         "calculated_mark": calculated_mark,
         "matched_keywords": matched_keywords,
-        "total_keywords": len(valid_keywords)
+        "total_keywords": total_kw
     }

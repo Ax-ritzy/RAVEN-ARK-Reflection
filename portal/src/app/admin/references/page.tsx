@@ -14,6 +14,9 @@ interface ReferenceMaterial {
   extracted_text: string;
   created_at: string;
   keywords: string[];
+  uploaded_by_name?: string;
+  uploaded_by_role?: string;
+  linked_sessions?: string[];
 }
 
 export default function ReferenceLibraryPage() {
@@ -52,19 +55,28 @@ export default function ReferenceLibraryPage() {
     const { data: refRows } = await supabase
       .from("reference_materials")
       .select(`
-        id, name, extracted_text, created_at,
-        reference_keyword_sets ( keywords, is_active )
+        id, name, extracted_text, created_at, uploaded_by,
+        profiles ( full_name, role ),
+        reference_keyword_sets ( keywords, is_active ),
+        session_references ( session_id, sessions ( name, created_at ) )
       `)
       .order("created_at", { ascending: false });
 
     const formatted: ReferenceMaterial[] = (refRows || []).map((r: any) => {
       const activeKw = r.reference_keyword_sets?.find((k: any) => k.is_active) || r.reference_keyword_sets?.[0];
+      const linked = (r.session_references || [])
+        .map((sr: any) => sr.sessions?.name)
+        .filter(Boolean);
+
       return {
         id: r.id,
         name: r.name,
         extracted_text: r.extracted_text || "",
         created_at: r.created_at,
         keywords: activeKw?.keywords || [],
+        uploaded_by_name: r.profiles?.full_name || "Faculty Administration",
+        uploaded_by_role: r.profiles?.role || "PROFESSOR",
+        linked_sessions: linked,
       };
     });
 
@@ -73,16 +85,19 @@ export default function ReferenceLibraryPage() {
   };
 
   useEffect(() => {
-    const supabase = createClient();
-    fetchReferences();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    async function checkAuth() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
+        return;
       }
-    });
+      fetchReferences();
+    }
+    checkAuth();
   }, [router]);
 
-  // Automated Document Read & Non-AI 15-Keyword Extraction
+  // Automated Document Read & Non-AI 5-Keyword Extraction
   const handleProcessUploadedDocument = async (selectedFile: File, isEdit: boolean = false) => {
     if (isEdit) {
       setEditFile(selectedFile);
@@ -98,6 +113,7 @@ export default function ReferenceLibraryPage() {
       const backendUrl = process.env.NEXT_PUBLIC_FASTAPI_BACKEND_URL || "http://localhost:8000";
       const formData = new FormData();
       formData.append("file", selectedFile);
+      formData.append("keyword_count", "5");
 
       const resp = await fetch(`${backendUrl}/api/references/extract-keywords`, {
         method: "POST",
@@ -152,9 +168,9 @@ export default function ReferenceLibraryPage() {
       return;
     }
 
-    if (extractedKeywords.length !== 15) {
+    if (extractedKeywords.length !== 5 && extractedKeywords.length !== 15) {
       setModalError(
-        `Exactly 15 distinct keywords must be calibrated. Currently extracted: ${extractedKeywords.length} keywords.`
+        `Reference must have 5 calibrated keywords. Currently extracted: ${extractedKeywords.length} keywords.`
       );
       setSaving(false);
       return;
@@ -184,12 +200,12 @@ export default function ReferenceLibraryPage() {
           extracted_text: referenceText.trim(),
           uploaded_by: profile?.id,
         })
-        .select("id")
+        .select("id, created_at")
         .single();
 
       if (refErr) throw new Error(refErr.message);
 
-      // 3. Insert the 15 calibrated keywords
+      // 3. Insert the calibrated keywords
       const { error: kwErr } = await supabase
         .from("reference_keyword_sets")
         .insert({
@@ -200,6 +216,28 @@ export default function ReferenceLibraryPage() {
         });
 
       if (kwErr) throw new Error(kwErr.message);
+
+      // 4. Date-Based Automatic Session Linking:
+      // Match sessions created on the same calendar date as this reference material
+      const uploadDateStr = new Date(newRef.created_at || Date.now()).toISOString().split("T")[0];
+      const { data: todaySessions } = await supabase
+        .from("sessions")
+        .select("id, created_at");
+
+      if (todaySessions && todaySessions.length > 0) {
+        const matchingSessions = todaySessions.filter((s: any) => {
+          const sessDateStr = new Date(s.created_at).toISOString().split("T")[0];
+          return sessDateStr === uploadDateStr;
+        });
+
+        if (matchingSessions.length > 0) {
+          const sessionRefRows = matchingSessions.map((s: any) => ({
+            session_id: s.id,
+            reference_id: newRef.id,
+          }));
+          await supabase.from("session_references").insert(sessionRefRows);
+        }
+      }
 
       // Reset modal state
       setShowCreateModal(false);
@@ -395,10 +433,25 @@ export default function ReferenceLibraryPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                       <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">{r.name}</h3>
+                      {r.uploaded_by_role === "REFERENCE_CONTRIBUTOR" && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                          Ref Contributor Upload
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
-                      ID: {r.id} • Added on {new Date(r.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+                      <span>By: <strong className="text-slate-600 dark:text-slate-300 font-sans">{r.uploaded_by_name}</strong></span>
+                      <span>&bull;</span>
+                      <span>Added: {new Date(r.created_at).toLocaleDateString()}</span>
+                      {r.linked_sessions && r.linked_sessions.length > 0 && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="text-cool-600 dark:text-cyan-400 font-sans font-semibold">
+                            🔗 {r.linked_sessions.join(", ")}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/50 shadow-sm">
@@ -429,7 +482,7 @@ export default function ReferenceLibraryPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      15 Subject-Specific Keywords (1 Match = 1 Mark, Final Mark = Score / 3)
+                      {r.keywords.length} Calibrated Keywords ({r.keywords.length === 5 ? "1 Match = 1.00 Mark, Max 5.00" : "1 Match = 0.33 Mark, Max 5.00"})
                     </h4>
                     <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">Zero Stopwords Guaranteed</span>
                   </div>
@@ -478,7 +531,7 @@ export default function ReferenceLibraryPage() {
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Upload Reference Document</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              File-read performs automated NLP extraction of 15 keywords (generic English forbidden)
+              File-read performs automated NLP extraction of 5 subject-specific keywords (generic English forbidden)
             </p>
           </div>
           <button
@@ -542,23 +595,23 @@ export default function ReferenceLibraryPage() {
             <div className="p-4 rounded-2xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center space-y-2">
               <div className="w-6 h-6 border-2 border-cool-500 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs font-bold text-cool-800 dark:text-cyan-300">
-                Reading document & computing 15 keywords...
+                Reading document & computing 5 keywords...
               </p>
               <p className="text-[11px] text-cool-600 dark:text-cyan-400">
-                Purging generic stopwords ("the", "is", "as", "for", "have", "that") and extracting domain terms.
+                Purging generic stopwords and extracting core domain terms.
               </p>
             </div>
           )}
 
-          {/* Extracted 15 Keywords Display */}
+          {/* Extracted 5 Keywords Display */}
           {extractedKeywords.length > 0 && !extractingDoc && (
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                  Auto-Calibrated Keywords ({extractedKeywords.length} of 15)
+                  Auto-Calibrated Keywords ({extractedKeywords.length} Keywords)
                 </label>
                 <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
-                  ✓ 15 Keywords Ready
+                  ✓ {extractedKeywords.length} Keywords Ready
                 </span>
               </div>
 
@@ -599,9 +652,9 @@ export default function ReferenceLibraryPage() {
             <InteractiveButton
               type="submit"
               variant="primary"
-              disabled={saving || extractingDoc || !name.trim() || extractedKeywords.length !== 15}
+              disabled={saving || extractingDoc || !name.trim() || (extractedKeywords.length !== 5 && extractedKeywords.length !== 15)}
             >
-              {saving ? "Saving Reference..." : "Save & Calibrate (15 Keywords)"}
+              {saving ? "Saving Reference..." : `Save & Calibrate (${extractedKeywords.length || 5} Keywords)`}
             </InteractiveButton>
           </div>
         </form>
@@ -622,7 +675,7 @@ export default function ReferenceLibraryPage() {
                 </div>
                 <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Edit Reference Material</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Update reference notes or re-upload a document to refresh the 15 keywords
+                  Update reference notes or re-upload a document to refresh the keywords
                 </p>
               </div>
               <button
@@ -678,7 +731,7 @@ export default function ReferenceLibraryPage() {
 
               {editExtracting && (
                 <div className="p-3.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 border border-cool-200 dark:border-cyan-800/50 text-center text-xs font-bold text-cool-800 dark:text-cyan-300">
-                  Re-reading document and updating 15 keywords...
+                  Re-reading document and updating keywords...
                 </div>
               )}
 
@@ -686,10 +739,10 @@ export default function ReferenceLibraryPage() {
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                    Active 15 Keywords
+                    Active Keywords
                   </label>
                   <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
-                    {editKeywords.length} / 15 keywords
+                    {editKeywords.length} keywords
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 max-h-40 overflow-y-auto">
@@ -716,7 +769,7 @@ export default function ReferenceLibraryPage() {
                 <InteractiveButton
                   type="submit"
                   variant="primary"
-                  disabled={savingEdit || editExtracting || !editName.trim() || editKeywords.length !== 15}
+                  disabled={savingEdit || editExtracting || !editName.trim() || (editKeywords.length !== 5 && editKeywords.length !== 15)}
                 >
                   {savingEdit ? "Updating..." : "Save Changes"}
                 </InteractiveButton>
