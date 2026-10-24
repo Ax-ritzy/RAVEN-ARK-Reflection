@@ -19,12 +19,12 @@ export default function RootLayout({
   const isAdmin = pathname.startsWith("/admin");
   const isStudent = pathname.startsWith("/student");
   const isReference = pathname.startsWith("/reference");
-  const isAuthPage = pathname === "/login" || pathname === "/" || pathname === "/reference/login";
+  const isAuthPage = pathname === "/login" || pathname === "/";
 
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push(isReference ? "/reference/login" : "/login");
+    router.push("/login");
   };
 
   return (
@@ -112,7 +112,7 @@ export default function RootLayout({
                   </div>
                 )}
 
-                {isReference && pathname !== "/reference/login" && (
+                {isReference && (
                   <div className="flex items-center space-x-2">
                     <span className="px-3 py-1.5 rounded-xl text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 font-bold border border-purple-200 dark:border-purple-500/30 text-xs">
                       📚 Reference Material Portal

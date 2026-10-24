@@ -54,10 +54,9 @@ Write-Host "  Web Portal:         http://localhost:3000" -ForegroundColor Cyan
 Write-Host "  FastAPI Docs:       http://localhost:8000/docs" -ForegroundColor Green
 Write-Host "  Ollama Local AI:    http://127.0.0.1:11434 (qwen3.5:4b)" -ForegroundColor Magenta
 Write-Host "-----------------------------------------------------------------" -ForegroundColor Gray
-Write-Host "  Login Portal Rules:" -ForegroundColor White
-Write-Host "    * Enter Professor Key -> Automatically opens /admin/dashboard" -ForegroundColor Yellow
-Write-Host "    * Enter Student Key   -> Automatically opens /student/dashboard" -ForegroundColor Yellow
-Write-Host "    * Enter Contributor   -> Automatically opens /reference" -ForegroundColor Yellow
-Write-Host "    * Dedicated Upload    -> Direct link: http://localhost:3000/reference/login" -ForegroundColor Magenta
+Write-Host "  Universal Login Rules (http://localhost:3000/login):" -ForegroundColor White
+Write-Host "    * Professor Account   -> Automatically routes to /admin/dashboard" -ForegroundColor Yellow
+Write-Host "    * Student Account     -> Automatically routes to /student/dashboard" -ForegroundColor Yellow
+Write-Host "    * Contributor Account -> Automatically routes to /reference (Material Uploads)" -ForegroundColor Yellow
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host "Keep the service windows open while using the application.`n" -ForegroundColor Gray

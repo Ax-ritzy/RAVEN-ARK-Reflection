@@ -59,7 +59,7 @@ export default function ReferenceContributorPortalPage() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/reference/login");
+        router.push("/login");
         return;
       }
 
@@ -70,13 +70,13 @@ export default function ReferenceContributorPortalPage() {
         .single();
 
       if (profErr || !prof) {
-        router.push("/reference/login");
+        router.push("/login");
         return;
       }
 
       if (prof.status === "SUSPENDED") {
         await supabase.auth.signOut();
-        router.push("/reference/login");
+        router.push("/login");
         return;
       }
 
