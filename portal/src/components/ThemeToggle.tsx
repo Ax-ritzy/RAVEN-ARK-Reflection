@@ -8,7 +8,7 @@ export default function ThemeToggle() {
 
   if (!isMounted) {
     return (
-      <div className="w-16 h-8 rounded-full bg-slate-800/40 border border-slate-700/50 animate-pulse" />
+      <div className="w-16 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/40 border border-slate-300 dark:border-slate-700/50" />
     );
   }
 

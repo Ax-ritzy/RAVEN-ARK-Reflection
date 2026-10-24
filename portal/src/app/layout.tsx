@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import CursorTracker from "@/components/CursorTracker";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import "./globals.css";
 
 export default function RootLayout({
@@ -29,7 +30,34 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased min-h-screen flex flex-col font-sans transition-colors duration-300">
+      <head>
+        {/* Anti-Flicker Synchronous Theme Initialization Script */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('reflection_ai_theme');
+                  var theme = saved === 'dark' ? 'dark' : 'light';
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                    document.documentElement.style.colorScheme = 'dark';
+                  } else {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.style.colorScheme = 'light';
+                  }
+                } catch (e) {
+                  document.documentElement.classList.add('light');
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased min-h-screen flex flex-col font-sans">
         <ThemeProvider>
           {/* Dynamic Light/Dark Ambient Gradient Mesh */}
           <AnimatedBackground />
@@ -41,7 +69,7 @@ export default function RootLayout({
           <header className="sticky top-0 z-30 px-4 py-3">
             <div className="max-w-7xl mx-auto rounded-2xl glass-panel px-5 h-16 flex items-center justify-between shadow-xl dark:shadow-2xl border border-slate-200/80 dark:border-slate-800/90 transition-all duration-300">
               {/* Logo Brand */}
-              <a
+              <Link
                 href={isAdmin ? "/admin/dashboard" : isStudent ? "/student/dashboard" : isReference ? "/reference" : "/login"}
                 className="flex items-center space-x-3 group"
               >
@@ -62,14 +90,14 @@ export default function RootLayout({
                       Reflection AI
                     </span>
                     <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-peach-100/80 dark:bg-gradient-to-r dark:from-red-950/60 dark:via-purple-950/60 dark:to-cyan-950/60 text-slate-700 dark:text-pink-300 border border-peach-200/80 dark:border-pink-500/30">
-                      {isAdmin ? "Faculty Admin" : isStudent ? "Student Area" : isReference ? "Ref Contributor" : "Unified"}
+                      {isAdmin ? "Faculty Admin" : isStudent ? "Student Area" : isReference ? "Ref Contributor" : "Universal"}
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block -mt-0.5 font-medium">
                     Academic Assessment System
                   </span>
                 </div>
-              </a>
+              </Link>
 
               {/* Nav Links & Controls */}
               <nav className="flex items-center space-x-1 sm:space-x-2 text-xs font-semibold">
@@ -85,17 +113,17 @@ export default function RootLayout({
                     ].map((tab) => {
                       const active = pathname === tab.href;
                       return (
-                        <a
+                        <Link
                           key={tab.href}
                           href={tab.href}
-                          className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
+                          className={`relative px-3.5 py-1.5 rounded-xl transition-all duration-150 ${
                             active
                               ? "text-slate-900 dark:text-white bg-peach-100/90 dark:bg-gradient-to-r dark:from-red-500/25 dark:via-pink-500/25 dark:to-purple-500/25 border border-peach-300 dark:border-pink-500/40 font-bold shadow-sm dark:shadow-md shadow-pink-500/10"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
                           }`}
                         >
                           {tab.label}
-                        </a>
+                        </Link>
                       );
                     })}
                   </div>
@@ -103,12 +131,12 @@ export default function RootLayout({
 
                 {isStudent && (
                   <div className="flex items-center space-x-2">
-                    <a
+                    <Link
                       href="/student/dashboard"
                       className="px-3.5 py-1.5 rounded-xl text-cool-600 dark:text-cyan-300 bg-cool-50 dark:bg-cyan-950/40 font-bold border border-cool-200 dark:border-cyan-500/30"
                     >
                       My Sessions
-                    </a>
+                    </Link>
                   </div>
                 )}
 
@@ -135,30 +163,20 @@ export default function RootLayout({
                     Sign Out
                   </motion.button>
                 ) : (
-                  <a
+                  <Link
                     href="/login"
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 hover:opacity-90 text-white shadow-md dark:shadow-lg shadow-pink-500/25 transition"
                   >
                     Sign In
-                  </a>
+                  </Link>
                 )}
               </nav>
             </div>
           </header>
 
-          {/* Content Area with smooth entrance */}
+          {/* Instant Content Area - No Transition Lag */}
           <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
+            {children}
           </main>
 
           <footer className="mt-auto py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">

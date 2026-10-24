@@ -9,7 +9,7 @@ export default function AnimatedBackground() {
 
   return (
     <div
-      className={`fixed inset-0 -z-10 overflow-hidden pointer-events-none transition-colors duration-500 ${
+      className={`fixed inset-0 -z-10 overflow-hidden pointer-events-none ${
         isDark ? "bg-[#07080e]" : "bg-[#faf9f6]"
       }`}
     >

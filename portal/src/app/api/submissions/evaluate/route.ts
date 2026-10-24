@@ -103,31 +103,33 @@ export async function POST(req: NextRequest) {
       console.warn("Backend FastAPI unreachable, trying direct Ollama Qwen...", backendErr);
     }
 
-    // 3. Step B: Try Direct Ollama Qwen 3.5:9B if FastAPI was unreachable
+    // 3. Step B: Try Direct Ollama Qwen 3.5:4B if FastAPI was unreachable
     if (!assessResult && forceQwen) {
       try {
         const ollamaUrl = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
         const cleanKeywords = chosenRef.keywords.map((k: string) => k.trim().toLowerCase());
+        const totalKw = cleanKeywords.length || 5;
+        const mult = 5.0 / totalKw;
 
         const ollamaResp = await fetch(`${ollamaUrl}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "qwen3.5:9b",
+            model: process.env.OLLAMA_MODEL || "qwen3.5:4b",
             think: false,
             messages: [
               {
                 role: "system",
                 content:
-                  "You are an automated academic evaluator. Evaluate student reflections against 15 required keywords. " +
-                  "Rule 1: Award 1 mark per keyword only if the keyword (or morphological form) is meaningfully used in context. " +
-                  "Rule 2: Max reference_score is 15. " +
-                  "Rule 3: calculated_mark = round(reference_score / 3.0, 2) (max 5.00). " +
-                  "Rule 4: Output strictly valid JSON: {\"matched_keywords\": [\"k1\"], \"reference_score\": 1, \"calculated_mark\": 0.33, \"feedback\": \"brief evaluation\"}",
+                  `You are an automated academic evaluator. Evaluate student reflections against ${totalKw} required keywords. ` +
+                  `Rule 1: Award 1 mark per keyword only if the keyword (or morphological form) is meaningfully used in context. ` +
+                  `Rule 2: Max reference_score is ${totalKw}. ` +
+                  `Rule 3: calculated_mark = round(reference_score * ${mult.toFixed(2)}, 2) (max 5.00). ` +
+                  `Rule 4: Output strictly valid JSON: {"matched_keywords": ["k1"], "reference_score": 1, "calculated_mark": ${mult.toFixed(2)}, "feedback": "brief evaluation"}`,
               },
               {
                 role: "user",
-                content: `Reference Topic: ${chosenRef.name}\nRequired 15 Keywords: ${JSON.stringify(cleanKeywords)}\n\nStudent Reflection:\n"${sub.extracted_text}"`,
+                content: `Reference Topic: ${chosenRef.name}\nRequired Keywords (${totalKw}): ${JSON.stringify(cleanKeywords)}\n\nStudent Reflection:\n"${sub.extracted_text}"`,
               },
             ],
             stream: false,

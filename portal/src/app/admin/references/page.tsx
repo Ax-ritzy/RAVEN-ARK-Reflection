@@ -270,9 +270,9 @@ export default function ReferenceLibraryPage() {
     setSavingEdit(true);
     setEditError(null);
 
-    if (editKeywords.length !== 15) {
+    if (editKeywords.length !== 5 && editKeywords.length !== 15) {
       setEditError(
-        `A reference must have EXACTLY 15 distinct keywords. You currently have ${editKeywords.length} distinct keywords.`
+        `Reference must have 5 calibrated keywords. Currently has: ${editKeywords.length} keywords.`
       );
       setSavingEdit(false);
       return;
@@ -364,10 +364,10 @@ export default function ReferenceLibraryPage() {
             Document-Driven Calibration Engine
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Reference Library & <span className="gradient-text-flame">Automated 15-Keywords</span>
+            Reference Library & <span className="gradient-text-flame">Automated 5-Keywords</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Upload lecture documents (.pdf, .docx, .txt, .ocr). System automatically extracts text and calculates 15 non-stopword evaluation keywords.
+            Upload lecture documents (.pdf, .docx, .txt, .ocr). System automatically extracts text and calculates 5 non-stopword evaluation keywords.
           </p>
         </div>
 
@@ -407,7 +407,7 @@ export default function ReferenceLibraryPage() {
             </div>
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">No reference documents uploaded yet</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-5">
-              Upload a lecture document to automatically extract text and calibrate the 15 keywords.
+              Upload a lecture document to automatically extract text and calibrate the 5 keywords.
             </p>
             <InteractiveButton
               onClick={() => {
@@ -799,7 +799,7 @@ export default function ReferenceLibraryPage() {
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                 Are you sure you want to permanently delete <strong className="text-slate-900 dark:text-white">{deleteTarget.name}</strong>?
-                This will remove its 15 calibrated keywords and unlink it from any assessment sessions.
+                This will remove its calibrated keywords and unlink it from any assessment sessions.
               </p>
             </div>
 
