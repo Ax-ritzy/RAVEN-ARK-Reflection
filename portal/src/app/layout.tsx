@@ -161,15 +161,18 @@ export default function RootLayout({
 
                 {!isAuthPage ? (
                   <div className="flex items-center space-x-1.5 sm:space-x-2">
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setShowPasswordModal(true)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/90 dark:bg-slate-900/80 hover:bg-peach-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-peach-600 dark:hover:text-pink-400 border border-slate-200/80 dark:border-slate-800 shadow-sm transition"
-                      title="Change Password"
-                    >
-                      🔑 Password
-                    </motion.button>
+                    {/* Password change allowed only on Admin portal (for admin) and Student workspace (for their own account). Reference contributors are strictly forbidden */}
+                    {(isAdmin || isStudent) && (
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowPasswordModal(true)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/90 dark:bg-slate-900/80 hover:bg-peach-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-peach-600 dark:hover:text-pink-400 border border-slate-200/80 dark:border-slate-800 shadow-sm transition"
+                        title={isAdmin ? "Change Admin Password" : "Change My Password"}
+                      >
+                        🔑 Password
+                      </motion.button>
+                    )}
 
                     <motion.button
                       whileHover={{ scale: 1.03 }}

@@ -34,6 +34,19 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     setSaving(true);
     try {
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authentication required. Please sign in again.");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (profile?.role === "REFERENCE_CONTRIBUTOR") {
+        throw new Error("Reference contributor accounts are managed by faculty and cannot change their password.");
+      }
+
       const { error: updateErr } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -62,7 +75,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             Change Account Password
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Update the login password for your faculty account.
+            Update the login password for your authenticated account.
           </p>
         </div>
 
