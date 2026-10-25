@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -7,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import CursorTracker from "@/components/CursorTracker";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { motion } from "framer-motion";
 import "./globals.css";
 
@@ -17,6 +19,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const isAdmin = pathname.startsWith("/admin");
   const isStudent = pathname.startsWith("/student");
   const isReference = pathname.startsWith("/reference");
@@ -157,14 +160,31 @@ export default function RootLayout({
                 </div>
 
                 {!isAuthPage ? (
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSignOut}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/90 dark:bg-slate-900/80 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200/80 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-500/40 shadow-sm transition"
-                  >
-                    Sign Out
-                  </motion.button>
+                  <div className="flex items-center space-x-1.5 sm:space-x-2">
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowPasswordModal(true)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/90 dark:bg-slate-900/80 hover:bg-peach-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-peach-600 dark:hover:text-pink-400 border border-slate-200/80 dark:border-slate-800 shadow-sm transition"
+                      title="Change Password"
+                    >
+                      🔑 Password
+                    </motion.button>
+
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSignOut}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/90 dark:bg-slate-900/80 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200/80 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-500/40 shadow-sm transition"
+                    >
+                      Sign Out
+                    </motion.button>
+
+                    <ChangePasswordModal
+                      isOpen={showPasswordModal}
+                      onClose={() => setShowPasswordModal(false)}
+                    />
+                  </div>
                 ) : (
                   <Link
                     href="/login"
