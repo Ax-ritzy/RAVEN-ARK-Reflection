@@ -229,3 +229,186 @@ html.light .liquid-glass-modal {
 html.light .liquid-glass-modal::before {
   background: linear-gradient(90deg, transparent 0%, rgba(251, 146, 60, 0.8) 20%, rgba(244, 63, 94, 0.9) 50%, rgba(56, 189, 248, 0.8) 80%, transparent 100%);
 }
+
+/* ==========================================================
+   120 FPS HARDWARE ACCELERATION & HIGH-REFRESH KINETIC ENGINE
+   ========================================================== */
+
+/* Universal GPU Compositor Offload */
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* GPU-composited Blur Orb with Strict Layer Containment */
+.gpu-blur-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+  contain: strict;
+}
+
+/* Non-Static Asymmetrical Fluid Flow Animations (Prime Periods for Non-Repeating Motion) */
+@keyframes orbFlow1 {
+  0% {
+    transform: translate3d(0px, 0px, 0) scale3d(1, 1, 1) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(85px, 60px, 0) scale3d(1.14, 0.92, 1) rotate(40deg);
+  }
+  66% {
+    transform: translate3d(-50px, 110px, 0) scale3d(0.92, 1.12, 1) rotate(85deg);
+  }
+  100% {
+    transform: translate3d(60px, -45px, 0) scale3d(1.08, 0.96, 1) rotate(120deg);
+  }
+}
+
+@keyframes orbFlow2 {
+  0% {
+    transform: translate3d(0px, 0px, 0) scale3d(1, 1, 1) rotate(0deg);
+  }
+  30% {
+    transform: translate3d(-75px, 80px, 0) scale3d(0.92, 1.12, 1) rotate(-35deg);
+  }
+  70% {
+    transform: translate3d(60px, -70px, 0) scale3d(1.15, 0.9, 1) rotate(50deg);
+  }
+  100% {
+    transform: translate3d(-40px, 45px, 0) scale3d(0.96, 1.05, 1) rotate(-80deg);
+  }
+}
+
+@keyframes orbFlow3 {
+  0% {
+    transform: translate3d(0px, 0px, 0) scale3d(1, 1, 1);
+  }
+  35% {
+    transform: translate3d(95px, -75px, 0) scale3d(1.18, 0.94, 1);
+  }
+  75% {
+    transform: translate3d(-80px, 65px, 0) scale3d(0.9, 1.15, 1);
+  }
+  100% {
+    transform: translate3d(45px, 80px, 0) scale3d(1.06, 0.97, 1);
+  }
+}
+
+@keyframes orbFlow4 {
+  0% {
+    transform: translate3d(0px, 0px, 0) scale3d(1, 1, 1) rotate(0deg);
+  }
+  40% {
+    transform: translate3d(-90px, -65px, 0) scale3d(0.94, 1.12, 1) rotate(60deg);
+  }
+  80% {
+    transform: translate3d(70px, 75px, 0) scale3d(1.12, 0.92, 1) rotate(-45deg);
+  }
+  100% {
+    transform: translate3d(-30px, 40px, 0) scale3d(1, 1.05, 1) rotate(30deg);
+  }
+}
+
+@keyframes orbFlow5 {
+  0% {
+    transform: translate3d(0px, 0px, 0) scale3d(1, 1, 1);
+  }
+  50% {
+    transform: translate3d(80px, -50px, 0) scale3d(1.15, 0.92, 1);
+  }
+  100% {
+    transform: translate3d(-60px, 60px, 0) scale3d(0.92, 1.1, 1);
+  }
+}
+
+@keyframes stardustFloat1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.8);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translate3d(35px, -110px, 0) scale(1.3);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(-25px, -230px, 0) scale(0.8);
+    opacity: 0.15;
+  }
+}
+
+@keyframes stardustFloat2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translate3d(-40px, -140px, 0) scale(0.7);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(30px, -280px, 0) scale(1);
+    opacity: 0.2;
+  }
+}
+
+@keyframes gridBreathe {
+  0%, 100% {
+    opacity: 0.03;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.06;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 120 FPS Animation Utilities */
+.animate-orb-1 {
+  animation: orbFlow1 19s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.animate-orb-2 {
+  animation: orbFlow2 23s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.animate-orb-3 {
+  animation: orbFlow3 29s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.animate-orb-4 {
+  animation: orbFlow4 31s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.animate-orb-5 {
+  animation: orbFlow5 37s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+.animate-stardust-1 {
+  animation: stardustFloat1 13s ease-in-out infinite alternate;
+}
+
+.animate-stardust-2 {
+  animation: stardustFloat2 17s ease-in-out infinite alternate;
+}
+
+.animate-grid-breathe {
+  animation: gridBreathe 8s ease-in-out infinite;
+}

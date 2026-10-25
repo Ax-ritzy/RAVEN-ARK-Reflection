@@ -18,19 +18,10 @@ export default function GlowCard({
   glowColor = "pink",
 }: GlowCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
 
   const glowColorMapDark = {
     red: "rgba(239, 68, 68, 0.22)",
@@ -54,28 +45,35 @@ export default function GlowCard({
 
   const activeGlow = isDark ? glowColorMapDark[glowColor] : glowColorMapLight[glowColor];
 
+  // 120 FPS High-Performance Mouse Tracker:
+  // Directly updates glowRef background without triggering React state re-renders
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || !glowRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    glowRef.current.style.background = `radial-gradient(450px circle at ${x}px ${y}px, ${activeGlow}, transparent 70%)`;
+  };
+
   return (
     <motion.div
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setMousePos({ x: -1000, y: -1000 });
-      }}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
-      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      whileHover={{ y: -3, transition: { duration: 0.18 } }}
       whileTap={onClick ? { scale: 0.99 } : undefined}
-      className={`relative overflow-hidden rounded-2xl glass-panel glass-panel-hover border border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#0d101d]/75 text-slate-800 dark:text-slate-100 shadow-md dark:shadow-xl transition-all duration-300 ${className} ${
+      className={`relative overflow-hidden rounded-2xl glass-panel glass-panel-hover border border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#0d101d]/75 text-slate-800 dark:text-slate-100 shadow-md dark:shadow-xl transition-all duration-300 gpu-layer ${className} ${
         onClick ? "cursor-pointer" : ""
       }`}
     >
-      {/* Dynamic Cursor Spotlight Tracking */}
+      {/* Dynamic Cursor Spotlight Tracking (Zero Re-render GPU composited) */}
       <div
-        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300"
+        ref={glowRef}
+        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 gpu-layer"
         style={{
           opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(450px circle at ${mousePos.x}px ${mousePos.y}px, ${activeGlow}, transparent 70%)`,
         }}
       />
       <div className="relative z-10">{children}</div>
