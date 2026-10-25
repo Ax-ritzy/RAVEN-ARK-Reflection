@@ -84,6 +84,15 @@ export default function StudentManagementPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Multi-Select Batch Deletion State
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+  const [batchDeleteStep, setBatchDeleteStep] = useState<1 | 2>(1);
+  const [checkingImpact, setCheckingImpact] = useState(false);
+  const [impactData, setImpactData] = useState<any>(null);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchDeleteError, setBatchDeleteError] = useState<string | null>(null);
+
   const fetchStudents = async () => {
     const supabase = createClient();
     const { data } = await supabase
@@ -426,6 +435,93 @@ export default function StudentManagementPage() {
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (filtered.length > 0 && selectedStudentIds.length === filtered.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filtered.map((s) => s.id));
+    }
+  };
+
+  const handleToggleSelectStudent = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const openBatchDeleteModal = async () => {
+    if (selectedStudentIds.length === 0) return;
+    setShowBatchDeleteModal(true);
+    setBatchDeleteStep(1);
+    setCheckingImpact(true);
+    setBatchDeleteError(null);
+    setImpactData(null);
+
+    try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Session expired. Please sign in again.");
+
+      const res = await fetch("/api/students/impact-check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ studentIds: selectedStudentIds }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to inspect impact");
+      setImpactData(data);
+    } catch (err: any) {
+      setBatchDeleteError(err.message || "Failed to inspect deletion impact.");
+    } finally {
+      setCheckingImpact(false);
+    }
+  };
+
+  const handleExecuteBatchDelete = async () => {
+    if (selectedStudentIds.length === 0) return;
+    setBatchDeleting(true);
+    setBatchDeleteError(null);
+
+    try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Session expired. Please sign in again.");
+
+      const res = await fetch("/api/students/provision", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ studentIds: selectedStudentIds }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete selected accounts");
+
+      const count = data.deletedCount || selectedStudentIds.length;
+      setShowBatchDeleteModal(false);
+      setSelectedStudentIds([]);
+      setNotification({
+        type: "success",
+        message: `Batch delete complete: Successfully removed ${count} account(s) and their authentication records.`,
+      });
+      invalidateCache("admin_students");
+      invalidateCache("admin_dashboard");
+      fetchStudents();
+    } catch (err: any) {
+      setBatchDeleteError(err.message || "Failed to execute batch deletion.");
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
+
   const filtered = students.filter(
     (s) =>
       s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -522,6 +618,48 @@ export default function StudentManagementPage() {
         )}
       </AnimatePresence>
 
+      {/* Batch Action Bar */}
+      <AnimatePresence>
+        {selectedStudentIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-4 rounded-2xl bg-slate-900 dark:bg-slate-950 text-white border border-slate-700 dark:border-slate-800 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-peach-400 animate-pulse" />
+              <div className="text-xs">
+                <span className="px-2.5 py-1 rounded-full bg-peach-500/20 text-peach-300 font-mono font-bold text-xs mr-2 border border-peach-500/30">
+                  {selectedStudentIds.length} Selected
+                </span>
+                <span className="font-semibold text-slate-300">
+                  Account{selectedStudentIds.length > 1 ? "s" : ""} marked for batch action
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds([])}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                Deselect All
+              </button>
+              <button
+                type="button"
+                onClick={openBatchDeleteModal}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+              >
+                <span>🗑️</span>
+                <span>Delete Selected ({selectedStudentIds.length})</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Roster Table Card */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -561,6 +699,14 @@ export default function StudentManagementPage() {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-100/70 dark:bg-slate-950/60 border-b border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-bold text-[11px]">
+                    <th className="py-4 px-4 w-12 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedStudentIds.length === filtered.length}
+                        onChange={handleToggleSelectAll}
+                        className="rounded text-pink-500 focus:ring-pink-500 w-4 h-4 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-4 px-6">Student Name</th>
                     <th className="py-4 px-6">USN</th>
                     <th className="py-4 px-6">Status</th>
@@ -573,8 +719,16 @@ export default function StudentManagementPage() {
                     <motion.tr
                       key={s.id}
                       whileHover={{ backgroundColor: "rgba(100, 116, 139, 0.05)" }}
-                      className="transition-colors group"
+                      className={`transition-colors group ${selectedStudentIds.includes(s.id) ? "bg-peach-50/40 dark:bg-red-950/20" : ""}`}
                     >
+                      <td className="py-4 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudentIds.includes(s.id)}
+                          onChange={() => handleToggleSelectStudent(s.id)}
+                          className="rounded text-pink-500 focus:ring-pink-500 w-4 h-4 cursor-pointer"
+                        />
+                      </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-peach-100 via-pink-100 to-cool-100 dark:from-red-500/20 dark:via-pink-500/20 dark:to-cyan-500/20 border border-peach-200 dark:border-pink-500/30 text-peach-800 dark:text-pink-300 flex items-center justify-center font-bold text-xs shadow-sm">
@@ -1156,6 +1310,237 @@ export default function StudentManagementPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* BATCH DELETE 2-STEP CONFIRMATION MODAL (RULE 1 & RULE 2) */}
+      <Modal
+        isOpen={showBatchDeleteModal}
+        onClose={() => {
+          if (!batchDeleting) {
+            setShowBatchDeleteModal(false);
+            setBatchDeleteStep(1);
+          }
+        }}
+        maxWidth="max-w-xl"
+      >
+        <div className="space-y-5">
+          {/* Header with Steps */}
+          <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+                    batchDeleteStep === 1
+                      ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300"
+                      : "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300"
+                  }`}
+                >
+                  Step {batchDeleteStep} of 2: {batchDeleteStep === 1 ? "Impact & Safety Scan" : "Final Confirmation"}
+                </span>
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                {batchDeleteStep === 1 ? "Review Accounts for Deletion" : "Confirm Permanent Deletion"}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {batchDeleteStep === 1
+                  ? `Analyzing data linked to ${selectedStudentIds.length} selected account(s)`
+                  : "This action is irreversible and permanently wipes selected accounts"}
+              </p>
+            </div>
+            {!batchDeleting && (
+              <button
+                onClick={() => setShowBatchDeleteModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white border border-white/40 dark:border-white/10 flex items-center justify-center transition"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {batchDeleteError && (
+            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 text-rose-500 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{batchDeleteError}</span>
+            </div>
+          )}
+
+          {/* STEP 1: Impact Scan (Rule 2) */}
+          {batchDeleteStep === 1 && (
+            <div className="space-y-4">
+              {checkingImpact ? (
+                <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 space-y-3">
+                  <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p>Scanning active sessions for student reflections and reference materials...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Warning Box if Submissions or References Detected (Rule 2) */}
+                  {impactData?.hasSubmissions || impactData?.hasReferences ? (
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs uppercase tracking-wider">
+                        <span>⚠️ Active Academic Data Detected</span>
+                      </div>
+
+                      {impactData?.hasSubmissions && (
+                        <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+                          <p className="font-semibold">
+                            • {impactData.totalSubmissions} active session reflection(s) exist for {impactData.studentsWithSubmissions.length} of the selected student(s):
+                          </p>
+                          <div className="max-h-28 overflow-y-auto pl-2 space-y-1 font-mono text-[11px] text-amber-800 dark:text-amber-300">
+                            {impactData.studentsWithSubmissions.map((s: any) => (
+                              <div key={s.id} className="bg-amber-100/70 dark:bg-amber-900/40 px-2 py-1 rounded">
+                                <strong>{s.name} ({s.usn})</strong>: {s.count} reflection(s) in ({s.sessions.join(", ")})
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400 italic">
+                            Deleting these students will permanently erase their reflections and scores.
+                          </p>
+                        </div>
+                      )}
+
+                      {impactData?.hasReferences && (
+                        <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1.5 pt-2 border-t border-amber-200 dark:border-amber-800/40">
+                          <p className="font-semibold">
+                            • {impactData.totalReferences} uploaded reference note(s) belong to {impactData.contributorsWithReferences.length} of the selected account(s):
+                          </p>
+                          <div className="max-h-24 overflow-y-auto pl-2 space-y-1 font-mono text-[11px] text-amber-800 dark:text-amber-300">
+                            {impactData.contributorsWithReferences.map((c: any) => (
+                              <div key={c.id} className="bg-amber-100/70 dark:bg-amber-900/40 px-2 py-1 rounded">
+                                <strong>{c.name}</strong>: {c.references.join(", ")}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400 italic">
+                            To maintain active sessions, reference notes will be preserved with Faculty Administration ownership.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2 font-medium">
+                      <span>✓ Clean Status:</span> No active session submissions or reference materials are attached to the selected accounts.
+                    </div>
+                  )}
+
+                  {/* List of Selected Profiles */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        Selected Accounts ({selectedStudentIds.length})
+                      </span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/40">
+                      {students
+                        .filter((s) => selectedStudentIds.includes(s.id))
+                        .map((s) => (
+                          <div
+                            key={s.id}
+                            className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 dark:text-white">{s.full_name}</span>
+                              <span className="font-mono text-[11px] text-slate-500">{s.usn || "N/A"}</span>
+                            </div>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                s.role === "REFERENCE_CONTRIBUTOR"
+                                  ? "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                              }`}
+                            >
+                              {s.role === "REFERENCE_CONTRIBUTOR" ? "Ref Contributor" : "Student"}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Step 1 Actions */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
+                    <InteractiveButton
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowBatchDeleteModal(false)}
+                    >
+                      Cancel
+                    </InteractiveButton>
+                    <button
+                      type="button"
+                      onClick={() => setBatchDeleteStep(2)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-peach-600 hover:bg-peach-700 text-white shadow-md active:scale-95 transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Proceed to Final Confirmation</span>
+                      <span>&rarr;</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* STEP 2: Final Confirmation (Rule 1) */}
+          {batchDeleteStep === 2 && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-900 dark:text-rose-200 space-y-3">
+                <div className="flex items-center gap-2.5 font-extrabold text-sm text-rose-700 dark:text-rose-300">
+                  <span className="text-xl">⚠️</span>
+                  <span>Are you absolutely sure? This cannot be undone.</span>
+                </div>
+                <p className="text-xs leading-relaxed">
+                  You are about to permanently delete <strong className="font-bold underline">{selectedStudentIds.length} account(s)</strong>.
+                </p>
+                <div className="text-xs space-y-1 text-rose-800 dark:text-rose-300">
+                  <p>• Database profile records will be completely removed.</p>
+                  <p>• Supabase Auth accounts will be revoked (students will not be able to log in).</p>
+                  <p>• Any associated reflection submissions and scores will be permanently deleted.</p>
+                </div>
+              </div>
+
+              {/* Step 2 Actions */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                <button
+                  type="button"
+                  disabled={batchDeleting}
+                  onClick={() => setBatchDeleteStep(1)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition cursor-pointer"
+                >
+                  &larr; Back to Impact Review
+                </button>
+                <div className="flex gap-3">
+                  <InteractiveButton
+                    type="button"
+                    variant="outline"
+                    disabled={batchDeleting}
+                    onClick={() => setShowBatchDeleteModal(false)}
+                  >
+                    Cancel
+                  </InteractiveButton>
+                  <button
+                    type="button"
+                    onClick={handleExecuteBatchDelete}
+                    disabled={batchDeleting}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-rose-600/30 active:scale-95 transition cursor-pointer select-none disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {batchDeleting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Deleting {selectedStudentIds.length} Accounts...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🗑️</span>
+                        <span>Yes, Permanently Delete All {selectedStudentIds.length} Accounts</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

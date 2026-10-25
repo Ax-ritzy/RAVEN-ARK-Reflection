@@ -214,7 +214,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE: Delete student and linked auth account
+// DELETE: Delete student(s) and linked auth account(s)
 export async function DELETE(req: NextRequest) {
   try {
     const authCheck = await verifyProfessorCaller(req);
@@ -224,38 +224,76 @@ export async function DELETE(req: NextRequest) {
     const { admin } = authCheck;
 
     const body = await req.json();
-    const { studentId } = body;
+    const { studentId, studentIds } = body;
 
-    if (!studentId) {
-      return NextResponse.json({ error: "studentId is required" }, { status: 400 });
+    const targetIds: string[] = studentIds && Array.isArray(studentIds)
+      ? studentIds
+      : studentId
+      ? [studentId]
+      : [];
+
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: "studentId or studentIds array is required" }, { status: 400 });
     }
 
-    // Fetch student's profile
-    const { data: profile, error: fetchErr } = await admin
+    // 1. Fetch target profiles
+    const { data: profiles, error: fetchErr } = await admin
       .from("profiles")
-      .select("id, auth_user_id, role")
-      .eq("id", studentId)
-      .single();
+      .select("id, auth_user_id, role, full_name, usn")
+      .in("id", targetIds);
 
-    if (fetchErr || !profile) {
-      return NextResponse.json({ error: "Student profile not found" }, { status: 404 });
+    if (fetchErr || !profiles || profiles.length === 0) {
+      return NextResponse.json({ error: "No matching student/contributor profiles found" }, { status: 404 });
     }
 
-    if (profile.role !== "STUDENT" && profile.role !== "REFERENCE_CONTRIBUTOR") {
-      return NextResponse.json({ error: "Forbidden: Cannot delete non-student/contributor accounts" }, { status: 403 });
+    // Strict safety guard: Never allow deleting PROFESSOR accounts
+    const unauthorizedAccounts = profiles.filter(
+      (p) => p.role !== "STUDENT" && p.role !== "REFERENCE_CONTRIBUTOR"
+    );
+    if (unauthorizedAccounts.length > 0) {
+      return NextResponse.json(
+        { error: `Forbidden: Cannot delete administrative account(s): ${unauthorizedAccounts.map((a) => a.full_name).join(", ")}` },
+        { status: 403 }
+      );
     }
 
-    // If student has an auth_user_id, delete via Supabase Admin API
-    if (profile.auth_user_id) {
-      await admin.auth.admin.deleteUser(profile.auth_user_id);
+    const validIds = profiles.map((p) => p.id);
+
+    // 2. Unlink any reference_materials uploaded by these profiles so foreign key constraints do not fail
+    await admin
+      .from("reference_materials")
+      .update({ uploaded_by: null })
+      .in("uploaded_by", validIds);
+
+    // 3. Delete from Supabase Auth admin API for all profiles with an auth_user_id
+    for (const p of profiles) {
+      if (p.auth_user_id) {
+        try {
+          await admin.auth.admin.deleteUser(p.auth_user_id);
+        } catch (authDelErr: any) {
+          console.warn(`Could not delete auth user ${p.auth_user_id}:`, authDelErr.message);
+        }
+      }
     }
 
-    // Also delete profile row explicitly in case auth_user_id was null or already deleted
-    await admin.from("profiles").delete().eq("id", studentId);
+    // 4. Delete profile rows in batch (cascades to submissions)
+    const { error: deleteError } = await admin
+      .from("profiles")
+      .delete()
+      .in("id", validIds);
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: `Failed to delete profile records: ${deleteError.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Student account and all associated records deleted successfully.",
+      message: `Successfully deleted ${validIds.length} account(s) and their associated credentials.`,
+      deletedCount: validIds.length,
+      deletedIds: validIds,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
