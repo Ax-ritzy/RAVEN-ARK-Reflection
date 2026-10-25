@@ -20,6 +20,8 @@ from app.services.ollama_evaluator import evaluate_with_qwen
 from integrations.raven.client import RavenWorkerClient
 import openpyxl
 import io
+from tests.test_timer import TestSessionTimer
+import unittest
 
 def test_scoring_deterministic_formula():
     print("[TEST] Running test_scoring_deterministic_formula...")
@@ -342,6 +344,11 @@ if __name__ == "__main__":
     test_raven_offline_decoupling()
     test_reference_document_keyword_extraction()
     test_ollama_qwen_integration()
+    print("[TEST] Running test_session_timer...")
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestSessionTimer)
+    res = unittest.TextTestRunner(verbosity=0).run(suite)
+    assert res.wasSuccessful(), "Session timer test cases failed!"
+    print("  --> PASS: Session expiry timer calculations, urgency stages, and formatting verified.")
     print("=================================================================")
-    print("ALL TESTS PASSED SUCCESSFULLY! (9/9 suites verified)")
+    print("ALL TESTS PASSED SUCCESSFULLY! (10/10 suites verified)")
     print("=================================================================")

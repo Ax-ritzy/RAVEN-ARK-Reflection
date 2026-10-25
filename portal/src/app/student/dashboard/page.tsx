@@ -7,12 +7,14 @@ import { getCached, setCached } from "@/lib/cache";
 import { motion } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
+import { computeTimerState } from "@/lib/timer";
 
 interface SessionItem {
   id: string;
   name: string;
   status: "OPEN" | "CLOSED";
   created_at: string;
+  expires_at?: string | null;
   submission?: {
     id: string;
     status: string;
@@ -33,6 +35,12 @@ export default function StudentDashboardPage() {
   const [studentUsn, setStudentUsn] = useState<string>(cachedStudent?.usn || "");
   const [studentName, setStudentName] = useState<string>(cachedStudent?.name || "");
   const [loading, setLoading] = useState(!cachedSessions);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const timerInterval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timerInterval);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -61,19 +69,30 @@ export default function StudentDashboardPage() {
       setCached("student_dashboard_profile", { usn: profile.usn || "", name: profile.full_name });
 
       // Concurrently fetch sessions and student's submissions in parallel
-      const [{ data: sessionRows }, { data: submissionRows }] = await Promise.all([
-        supabase
+      let sessionRows: any[] = [];
+      const { data: sRows, error: sErr } = await supabase
+        .from("sessions")
+        .select("id, name, status, created_at, expires_at")
+        .order("created_at", { ascending: false });
+
+      if (sErr && sErr.code === "42703") {
+        // Fallback if expires_at column is not yet migrated
+        const fb = await supabase
           .from("sessions")
           .select("id, name, status, created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("submissions")
-          .select(`
+          .order("created_at", { ascending: false });
+        sessionRows = fb.data || [];
+      } else {
+        sessionRows = sRows || [];
+      }
+
+      const { data: submissionRows } = await supabase
+        .from("submissions")
+        .select(`
           id, session_id, status, submitted_at,
           assessments ( final_approved_mark, reference_score, status )
         `)
-          .eq("student_id", profile.id),
-      ]);
+        .eq("student_id", profile.id);
 
       const subMap = new Map();
       if (submissionRows) {
@@ -150,6 +169,8 @@ export default function StudentDashboardPage() {
             {sessions.map((s, idx) => {
               const hasSubmitted = !!s.submission;
               const isAssessed = s.submission?.assessment?.status === "COMPLETED";
+              const timer = computeTimerState(s.expires_at);
+              const isExpired = timer?.isExpired ?? false;
 
               return (
                 <motion.div
@@ -158,19 +179,32 @@ export default function StudentDashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  <GlowCard glowColor={s.status === "OPEN" ? "peach" : "cool"} className="p-6">
+                  <GlowCard glowColor={s.status === "OPEN" && !isExpired ? "peach" : "cool"} className="p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
-                              s.status === "OPEN"
+                              s.status === "OPEN" && !isExpired
                                 ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                             }`}
                           >
-                            {s.status}
+                            {isExpired ? "EXPIRED" : s.status}
                           </span>
+                          {timer && !timer.isExpired && s.status === "OPEN" && (
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-bold tracking-wider border flex items-center gap-1.5 ${
+                                timer.urgency === "critical"
+                                  ? "bg-rose-50 text-rose-700 border-rose-300 animate-pulse dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                  : timer.urgency === "warning"
+                                  ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                                  : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                              }`}
+                            >
+                              <span>⏳</span> {timer.formatted} left
+                            </span>
+                          )}
                           {hasSubmitted && (
                             <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800/50">
                               ✓ Submitted
@@ -199,13 +233,17 @@ export default function StudentDashboardPage() {
                           >
                             View Result & Review →
                           </InteractiveButton>
-                        ) : s.status === "OPEN" ? (
+                        ) : s.status === "OPEN" && !isExpired ? (
                           <InteractiveButton
                             variant="primary"
                             onClick={() => router.push(`/student/submit/${s.id}`)}
                           >
                             Submit Reflection →
                           </InteractiveButton>
+                        ) : isExpired ? (
+                          <span className="text-xs text-rose-500 dark:text-rose-400 font-medium px-4 py-2.5 bg-rose-50/70 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/50">
+                            Submission Window Expired
+                          </span>
                         ) : (
                           <span className="text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 bg-slate-100/70 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
                             Session Concluded

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
+import { computeTimerState, TimerState } from "@/lib/timer";
 
 export default function SubmitReflectionPage() {
   const params = useParams();
@@ -18,7 +19,19 @@ export default function SubmitReflectionPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [autoSubmitNotice, setAutoSubmitNotice] = useState<string | null>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+
+  // Timer States
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [timerState, setTimerState] = useState<TimerState | null>(null);
+
+  // Refs to avoid stale closures in interval
+  const reflectionTextRef = useRef(reflectionText);
+  reflectionTextRef.current = reflectionText;
+  const fileRef = useRef(file);
+  fileRef.current = file;
+  const isSubmittedRef = useRef(false);
 
   const MAX_CHARS = 500;
 
@@ -44,11 +57,24 @@ export default function SubmitReflectionPage() {
       }
       setStudentProfile(profile);
 
-      const { data: session } = await supabase
+      // Resilient select including expires_at
+      let session: any = null;
+      const { data: sessData, error: sessErr } = await supabase
         .from("sessions")
-        .select("id, name, status")
+        .select("id, name, status, expires_at")
         .eq("id", sessionId)
         .single();
+
+      if (sessErr && sessErr.code === "42703") {
+        const fallback = await supabase
+          .from("sessions")
+          .select("id, name, status")
+          .eq("id", sessionId)
+          .single();
+        session = fallback.data;
+      } else {
+        session = sessData;
+      }
 
       if (!session) {
         setErrorMsg("Session not found.");
@@ -63,6 +89,18 @@ export default function SubmitReflectionPage() {
       }
 
       setSessionName(session.name);
+
+      // Check if session has expired
+      if (session.expires_at) {
+        const initialTimer = computeTimerState(session.expires_at);
+        if (initialTimer && initialTimer.isExpired) {
+          setErrorMsg("This session's submission window has expired. Submissions are closed.");
+          setLoading(false);
+          return;
+        }
+        setExpiresAt(session.expires_at);
+        setTimerState(initialTimer);
+      }
 
       const { data: existingSub } = await supabase
         .from("submissions")
@@ -83,6 +121,36 @@ export default function SubmitReflectionPage() {
     verifyEligibility();
   }, [sessionId, router]);
 
+  // Live Timer Countdown & Auto-Submit on Expiry
+  useEffect(() => {
+    if (!expiresAt) return;
+
+    const interval = setInterval(() => {
+      const state = computeTimerState(expiresAt);
+      setTimerState(state);
+
+      if (state && state.isExpired) {
+        clearInterval(interval);
+        handleAutoSubmitOnTimeout();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  const handleAutoSubmitOnTimeout = async () => {
+    if (isSubmittedRef.current) return;
+    isSubmittedRef.current = true;
+
+    const currentText = reflectionTextRef.current.trim();
+    if (currentText.length > 0 || fileRef.current) {
+      setAutoSubmitNotice("⏳ Session time has expired! Automatically submitting your current reflection draft...");
+      await executeSubmission(currentText, fileRef.current, true);
+    } else {
+      setErrorMsg("⏰ The session timer has expired. No submission was recorded because no reflection text was entered.");
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
@@ -95,21 +163,21 @@ export default function SubmitReflectionPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSubmission = async (bodyText: string, uploadFile: File | null, isAuto: boolean = false) => {
     setErrorMsg(null);
     setSubmitting(true);
+    isSubmittedRef.current = true;
 
     const supabase = createClient();
 
     try {
-      let finalBody = reflectionText.trim();
+      let finalBody = bodyText.trim();
       let storagePath = `text_input_${Date.now()}.txt`;
 
-      if (file) {
+      if (uploadFile) {
         const backendUrl = process.env.NEXT_PUBLIC_FASTAPI_BACKEND_URL || "http://localhost:8000";
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", uploadFile);
         formData.append("max_chars", "500");
 
         try {
@@ -126,25 +194,28 @@ export default function SubmitReflectionPage() {
           const extractData = await extractResp.json();
           finalBody = extractData.extracted_text;
         } catch (fetchErr: any) {
-          if (file.name.endsWith(".txt")) {
-            finalBody = (await file.text()).trim();
+          if (uploadFile.name.endsWith(".txt")) {
+            finalBody = (await uploadFile.text()).trim();
           } else {
             throw new Error(`Document extraction failed: ${fetchErr.message}`);
           }
         }
 
-        const fileExt = file.name.split(".").pop();
+        const fileExt = uploadFile.name.split(".").pop();
         storagePath = `${studentProfile.id}/${sessionId}/${Date.now()}.${fileExt}`;
         await supabase.storage
           .from("student-submissions")
-          .upload(storagePath, file, { upsert: true });
+          .upload(storagePath, uploadFile, { upsert: true });
       }
 
       if (finalBody.length === 0) {
         throw new Error("Reflection body cannot be empty.");
       }
 
-      if (finalBody.length > MAX_CHARS) {
+      // If auto-submitting and text exceeds 500 characters, truncate gracefully
+      if (isAuto && finalBody.length > MAX_CHARS) {
+        finalBody = finalBody.slice(0, MAX_CHARS);
+      } else if (finalBody.length > MAX_CHARS) {
         throw new Error(`Reflection exceeds the 500-character limit (${finalBody.length} characters).`);
       }
 
@@ -168,7 +239,7 @@ export default function SubmitReflectionPage() {
         throw new Error(subError.message);
       }
 
-      // Immediately trigger deterministic assessment evaluation
+      // Trigger deterministic evaluation
       try {
         await fetch("/api/submissions/evaluate", {
           method: "POST",
@@ -183,12 +254,19 @@ export default function SubmitReflectionPage() {
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to submit reflection.");
       setSubmitting(false);
+      isSubmittedRef.current = false;
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeSubmission(reflectionText, file, false);
   };
 
   const currentChars = reflectionText.length;
   const progressPercent = Math.min((currentChars / MAX_CHARS) * 100, 100);
   const isOverLimit = currentChars > MAX_CHARS;
+  const isTimeUp = timerState?.isExpired ?? false;
 
   if (loading) {
     return (
@@ -217,6 +295,55 @@ export default function SubmitReflectionPage() {
           </p>
         </div>
 
+        {/* Live Countdown Timer Banner */}
+        {timerState && !timerState.isExpired && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 mb-6 rounded-2xl border flex items-center justify-between transition-all duration-300 ${
+              timerState.urgency === "critical"
+                ? "bg-rose-50/90 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700/60 text-rose-900 dark:text-rose-200 animate-pulse shadow-md shadow-rose-500/10"
+                : timerState.urgency === "warning"
+                ? "bg-amber-50/90 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200"
+                : "bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700/60 text-emerald-900 dark:text-emerald-200"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">
+                {timerState.urgency === "critical" ? "🔥" : timerState.urgency === "warning" ? "⚠️" : "⏳"}
+              </span>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider">
+                  {timerState.urgency === "critical"
+                    ? "Time Almost Up!"
+                    : timerState.urgency === "warning"
+                    ? "Submissions Closing Soon"
+                    : "Time Remaining"}
+                </div>
+                <div className="text-[11px] opacity-80">
+                  Draft will automatically submit when timer reaches 00:00
+                </div>
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl font-mono font-black tracking-tight">
+              {timerState.formatted}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Auto-Submit Notice */}
+        {autoSubmitNotice && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 mb-6 rounded-2xl bg-peach-50 dark:bg-peach-950/60 border border-peach-300 dark:border-peach-700 text-peach-900 dark:text-peach-200 text-xs font-semibold flex items-center gap-3"
+          >
+            <div className="w-4 h-4 border-2 border-peach-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <span>{autoSubmitNotice}</span>
+          </motion.div>
+        )}
+
+        {/* Error Notice */}
         {errorMsg && (
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
@@ -233,12 +360,17 @@ export default function SubmitReflectionPage() {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
               Upload Document (TXT, DOCX, or PDF)
             </label>
-            <div className="border-2 border-dashed border-peach-200 dark:border-slate-700 hover:border-peach-400 dark:hover:border-cyan-400 rounded-2xl p-6 text-center transition-all bg-peach-50/30 dark:bg-slate-900/40 hover:bg-peach-50/60 dark:hover:bg-slate-900/70 cursor-pointer group">
+            <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+              isTimeUp || submitting
+                ? "opacity-60 cursor-not-allowed border-slate-300 dark:border-slate-800"
+                : "border-peach-200 dark:border-slate-700 hover:border-peach-400 dark:hover:border-cyan-400 bg-peach-50/30 dark:bg-slate-900/40 hover:bg-peach-50/60 dark:hover:bg-slate-900/70 cursor-pointer"
+            }`}>
               <input
                 type="file"
                 accept=".txt,.docx,.pdf"
+                disabled={submitting || isTimeUp}
                 onChange={handleFileChange}
-                className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer"
+                className="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-peach-500 file:to-rose-500 file:text-white hover:file:opacity-90 transition cursor-pointer disabled:cursor-not-allowed"
               />
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
                 Text is safely extracted and strictly checked against the 500-character maximum.
@@ -279,10 +411,13 @@ export default function SubmitReflectionPage() {
             <textarea
               rows={6}
               value={reflectionText}
+              disabled={submitting || isTimeUp}
               onChange={(e) => setReflectionText(e.target.value)}
               placeholder="Synthesize the core concepts covered in today's reflection (maximum 500 characters)..."
               className={`w-full p-4 rounded-2xl border text-sm font-sans focus:outline-none transition-all shadow-sm ${
-                isOverLimit
+                isTimeUp || submitting
+                  ? "bg-slate-100 dark:bg-slate-900/60 opacity-60 cursor-not-allowed border-slate-300"
+                  : isOverLimit
                   ? "border-rose-400 focus:ring-2 focus:ring-rose-400 bg-rose-50/20 dark:bg-rose-950/20 text-slate-900 dark:text-slate-100"
                   : "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-peach-400 bg-white/80 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               }`}
@@ -291,10 +426,10 @@ export default function SubmitReflectionPage() {
 
           <InteractiveButton
             type="submit"
-            disabled={submitting || isOverLimit || (!file && !reflectionText.trim())}
+            disabled={submitting || isOverLimit || isTimeUp || (!file && !reflectionText.trim())}
             className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg"
           >
-            {submitting ? "Processing & Evaluating..." : "Submit Reflection for Evaluation →"}
+            {submitting ? "Processing & Evaluating..." : isTimeUp ? "Session Expired" : "Submit Reflection for Evaluation →"}
           </InteractiveButton>
         </form>
       </GlowCard>

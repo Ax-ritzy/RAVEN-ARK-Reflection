@@ -8,12 +8,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlowCard from "@/components/GlowCard";
 import InteractiveButton from "@/components/InteractiveButton";
 import Modal from "@/components/Modal";
+import { computeTimerState, calculateExpiryTimestamp } from "@/lib/timer";
 
 interface SessionDetail {
   id: string;
   name: string;
   status: "OPEN" | "CLOSED";
   created_at: string;
+  expires_at?: string | null;
   submissions_count: number;
   assigned_references: string[];
   assigned_reference_ids: string[];
@@ -26,11 +28,22 @@ export default function SessionManagementPage() {
   const [sessions, setSessions] = useState<SessionDetail[]>(cachedSessions || []);
   const [availableReferences, setAvailableReferences] = useState<any[]>(cachedRefs || []);
   const [loading, setLoading] = useState(!cachedSessions);
+  const [, setTick] = useState(0);
+
+  // Live countdown ticker
+  useEffect(() => {
+    const timerInterval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timerInterval);
+  }, []);
 
   // Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSessionName, setNewSessionName] = useState("");
   const [selectedRefIds, setSelectedRefIds] = useState<string[]>([]);
+  const [expiryMode, setExpiryMode] = useState<"NONE" | "PRESET" | "CUSTOM" | "DATETIME">("PRESET");
+  const [presetMinutes, setPresetMinutes] = useState<number>(30);
+  const [customMinutes, setCustomMinutes] = useState<number>(0);
+  const [specificDateTime, setSpecificDateTime] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -39,6 +52,11 @@ export default function SessionManagementPage() {
   const [editName, setEditName] = useState("");
   const [editStatus, setEditStatus] = useState<"OPEN" | "CLOSED">("OPEN");
   const [editRefIds, setEditRefIds] = useState<string[]>([]);
+  const [editExpiryMode, setEditExpiryMode] = useState<"NONE" | "PRESET" | "CUSTOM" | "DATETIME">("NONE");
+  const [editPresetMinutes, setEditPresetMinutes] = useState<number>(15);
+  const [editCustomMinutes, setEditCustomMinutes] = useState<number>(0);
+  const [editSpecificDateTime, setEditSpecificDateTime] = useState<string>("");
+  const [editExpiresAt, setEditExpiresAt] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -51,17 +69,25 @@ export default function SessionManagementPage() {
     const supabase = createClient();
     
     // Concurrently fetch sessions, references, submission counts, and mappings in parallel
+    let sessData: any[] = [];
     const [
-      { data: sessData },
+      { data: sData, error: sErr },
       { data: refData },
       { data: subCounts },
       { data: sessRefs },
     ] = await Promise.all([
-      supabase.from("sessions").select("id, name, status, created_at").order("created_at", { ascending: false }),
+      supabase.from("sessions").select("id, name, status, created_at, expires_at").order("created_at", { ascending: false }),
       supabase.from("reference_materials").select("id, name, created_at"),
       supabase.from("submissions").select("session_id"),
       supabase.from("session_references").select("session_id, reference_id, reference_materials(name)"),
     ]);
+
+    if (sErr && sErr.code === "42703") {
+      const fb = await supabase.from("sessions").select("id, name, status, created_at").order("created_at", { ascending: false });
+      sessData = fb.data || [];
+    } else {
+      sessData = sData || [];
+    }
 
     setAvailableReferences(refData || []);
 
@@ -132,20 +158,47 @@ export default function SessionManagementPage() {
       return;
     }
 
-    const { data: newSession, error: sessErr } = await supabase
+    const calculatedExpiresAt = calculateExpiryTimestamp(
+      expiryMode,
+      presetMinutes,
+      customMinutes,
+      specificDateTime
+    );
+
+    const insertPayload: any = {
+      name: newSessionName.trim(),
+      status: "OPEN",
+      created_by: profile.id,
+    };
+    if (calculatedExpiresAt) {
+      insertPayload.expires_at = calculatedExpiresAt;
+    }
+
+    let newSession: any = null;
+    const { data: createdSess, error: sessErr } = await supabase
       .from("sessions")
-      .insert({
-        name: newSessionName.trim(),
-        status: "OPEN",
-        created_by: profile.id,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
 
     if (sessErr) {
-      setModalError(sessErr.message);
-      setSaving(false);
-      return;
+      // Fallback if expires_at column does not exist yet in live database
+      if (sessErr.code === "42703" && insertPayload.expires_at) {
+        delete insertPayload.expires_at;
+        const retry = await supabase.from("sessions").insert(insertPayload).select("id").single();
+        if (retry.error) {
+          setModalError(retry.error.message);
+          setSaving(false);
+          return;
+        }
+        newSession = retry.data;
+      } else {
+        setModalError(sessErr.message);
+        setSaving(false);
+        return;
+      }
+    } else {
+      newSession = createdSess;
     }
 
     if (selectedRefIds.length > 0) {
@@ -168,6 +221,10 @@ export default function SessionManagementPage() {
     setShowCreateModal(false);
     setNewSessionName("");
     setSelectedRefIds([]);
+    setExpiryMode("PRESET");
+    setPresetMinutes(30);
+    setCustomMinutes(0);
+    setSpecificDateTime("");
     setSaving(false);
     invalidateCache("admin_sessions");
     invalidateCache("admin_dashboard");
@@ -179,6 +236,20 @@ export default function SessionManagementPage() {
     setEditName(s.name);
     setEditStatus(s.status);
     setEditRefIds([...s.assigned_reference_ids]);
+    setEditExpiresAt(s.expires_at || null);
+    if (s.expires_at) {
+      setEditExpiryMode("DATETIME");
+      try {
+        const d = new Date(s.expires_at);
+        const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setEditSpecificDateTime(localIso);
+      } catch {
+        setEditSpecificDateTime("");
+      }
+    } else {
+      setEditExpiryMode("NONE");
+      setEditSpecificDateTime("");
+    }
     setEditError(null);
   };
 
@@ -192,17 +263,41 @@ export default function SessionManagementPage() {
     try {
       const supabase = createClient();
 
+      let updatedExpiresAt = editExpiresAt;
+      if (editExpiryMode === "PRESET") {
+        updatedExpiresAt = new Date(Date.now() + editPresetMinutes * 60 * 1000).toISOString();
+      } else if (editExpiryMode === "CUSTOM") {
+        updatedExpiresAt = new Date(Date.now() + Math.max(1, editCustomMinutes) * 60 * 1000).toISOString();
+      } else if (editExpiryMode === "DATETIME") {
+        updatedExpiresAt = editSpecificDateTime ? new Date(editSpecificDateTime).toISOString() : null;
+      } else if (editExpiryMode === "NONE") {
+        updatedExpiresAt = null;
+      }
+
       // 1. Update session details
+      const updatePayload: any = {
+        name: editName.trim(),
+        status: editStatus,
+        updated_at: new Date().toISOString(),
+      };
+      if (updatedExpiresAt !== undefined) {
+        updatePayload.expires_at = updatedExpiresAt;
+      }
+
       const { error: sessErr } = await supabase
         .from("sessions")
-        .update({
-          name: editName.trim(),
-          status: editStatus,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", editSession.id);
 
-      if (sessErr) throw new Error(sessErr.message);
+      if (sessErr) {
+        if (sessErr.code === "42703" && "expires_at" in updatePayload) {
+          delete updatePayload.expires_at;
+          const retry = await supabase.from("sessions").update(updatePayload).eq("id", editSession.id);
+          if (retry.error) throw new Error(retry.error.message);
+        } else {
+          throw new Error(sessErr.message);
+        }
+      }
 
       // 2. Resync session references
       await supabase
@@ -371,15 +466,36 @@ export default function SessionManagementPage() {
                   <div className="space-y-2 flex-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">{s.name}</h3>
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                          s.status === "OPEN"
-                            ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                        }`}
-                      >
-                        {s.status}
-                      </span>
+                      {(() => {
+                        const timer = computeTimerState(s.expires_at);
+                        const isExpired = timer?.isExpired ?? false;
+                        return (
+                          <>
+                            <span
+                              className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                s.status === "OPEN" && !isExpired
+                                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                              }`}
+                            >
+                              {isExpired ? "EXPIRED" : s.status}
+                            </span>
+                            {timer && !timer.isExpired && s.status === "OPEN" && (
+                              <span
+                                className={`text-xs px-2.5 py-0.5 rounded-full font-bold tracking-wider border flex items-center gap-1 ${
+                                  timer.urgency === "critical"
+                                    ? "bg-rose-50 text-rose-700 border-rose-300 animate-pulse dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                    : timer.urgency === "warning"
+                                    ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                                    : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                                }`}
+                              >
+                                <span>⏳</span> {timer.formatted} left
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
@@ -494,6 +610,105 @@ export default function SessionManagementPage() {
               placeholder="e.g. Session 6: Self-Attention & Vision Transformers"
               className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500 focus:outline-none transition"
             />
+          </div>
+
+          {/* Expiry Timer Configuration */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                ⏳ Session Expiry Timer
+              </label>
+              <span className="text-[10px] text-slate-400">
+                Auto-closes & auto-submits drafts
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setExpiryMode("NONE")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${
+                  expiryMode === "NONE"
+                    ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                No Timer
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpiryMode("PRESET")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${
+                  expiryMode === "PRESET"
+                    ? "bg-peach-600 text-white dark:bg-peach-500 border-transparent shadow-sm"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                Duration
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpiryMode("DATETIME")}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition ${
+                  expiryMode === "DATETIME"
+                    ? "bg-peach-600 text-white dark:bg-peach-500 border-transparent shadow-sm"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                Exact Date/Time
+              </button>
+            </div>
+
+            {expiryMode === "PRESET" && (
+              <div className="space-y-2 pt-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {[15, 30, 45, 60, 90].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        setPresetMinutes(m);
+                        setCustomMinutes(0);
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition ${
+                        presetMinutes === m && customMinutes === 0
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500"
+                      }`}
+                    >
+                      {m} mins
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-[11px] text-slate-500">Or custom:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1440"
+                    value={customMinutes || ""}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setCustomMinutes(val);
+                    }}
+                    placeholder="e.g. 25"
+                    className="w-20 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-900 dark:text-slate-100"
+                  />
+                  <span className="text-[11px] text-slate-500">minutes</span>
+                </div>
+              </div>
+            )}
+
+            {expiryMode === "DATETIME" && (
+              <div className="pt-1">
+                <input
+                  type="datetime-local"
+                  value={specificDateTime}
+                  onChange={(e) => setSpecificDateTime(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-peach-500"
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -630,6 +845,84 @@ export default function SessionManagementPage() {
                   <option value="OPEN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">OPEN (Accepting Student Reflections)</option>
                   <option value="CLOSED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">CLOSED (Submissions Locked)</option>
                 </select>
+              </div>
+
+              {/* Expiry Timer Configuration in Edit Modal */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    ⏳ Session Expiry Timer
+                  </label>
+                  {editSession.expires_at && (() => {
+                    const t = computeTimerState(editSession.expires_at);
+                    if (!t) return null;
+                    return (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        t.isExpired ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                      }`}>
+                        {t.isExpired ? "Currently Expired" : `${t.formatted} left`}
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditExpiryMode("NONE")}
+                    className={`py-1.5 px-1 text-center rounded-lg text-[11px] font-semibold border transition ${
+                      editExpiryMode === "NONE"
+                        ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    No Timer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditExpiryMode("PRESET"); setEditPresetMinutes(15); }}
+                    className={`py-1.5 px-1 text-center rounded-lg text-[11px] font-semibold border transition ${
+                      editExpiryMode === "PRESET" && editPresetMinutes === 15
+                        ? "bg-peach-600 text-white dark:bg-peach-500 border-transparent shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    +15 mins
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditExpiryMode("PRESET"); setEditPresetMinutes(30); }}
+                    className={`py-1.5 px-1 text-center rounded-lg text-[11px] font-semibold border transition ${
+                      editExpiryMode === "PRESET" && editPresetMinutes === 30
+                        ? "bg-peach-600 text-white dark:bg-peach-500 border-transparent shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    +30 mins
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditExpiryMode("DATETIME")}
+                    className={`py-1.5 px-1 text-center rounded-lg text-[11px] font-semibold border transition ${
+                      editExpiryMode === "DATETIME"
+                        ? "bg-peach-600 text-white dark:bg-peach-500 border-transparent shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Exact Time
+                  </button>
+                </div>
+
+                {editExpiryMode === "DATETIME" && (
+                  <div className="pt-1">
+                    <input
+                      type="datetime-local"
+                      value={editSpecificDateTime}
+                      onChange={(e) => setEditSpecificDateTime(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-peach-500"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
