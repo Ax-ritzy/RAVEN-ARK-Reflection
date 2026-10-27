@@ -174,21 +174,42 @@ export default function StudentManagementPage() {
 
   // Download Sample Excel Template
   const handleDownloadTemplate = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
-    const sampleData = [
-      ["Name", "USN", "Email ID", "Password"],
-      ["Alex Morgan", "1RV21CS010", "alex.morgan@institution.edu", "Student@123"],
-      ["Brian Clark", "1RV21CS011", "brian.clark@institution.edu", "Student@123"],
-      ["Catherine Lee", "1RV21CS012", "catherine.lee@institution.edu", "Student@123"],
+    const ExcelJS = await import("exceljs");
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Reflection AI";
+    const ws = wb.addWorksheet("Students");
+
+    ws.columns = [
+      { header: "Name", key: "name", width: 22 },
+      { header: "USN", key: "usn", width: 16 },
+      { header: "Email ID", key: "email", width: 34 },
+      { header: "Password", key: "password", width: 18 },
     ];
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
 
-    // Set nice column widths
-    ws["!cols"] = [{ wch: 20 }, { wch: 15 }, { wch: 32 }, { wch: 18 }];
+    // Style header row
+    const headerRow = ws.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FF0F172A" } };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF1F5F9" },
+    };
 
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-    XLSX.writeFile(wb, "Student_Roster_Template.xlsx");
+    // Add sample rows
+    ws.addRow({ name: "Alex Morgan", usn: "1RV21CS010", email: "alex.morgan@institution.edu", password: "Student@123" });
+    ws.addRow({ name: "Brian Clark", usn: "1RV21CS011", email: "brian.clark@institution.edu", password: "Student@123" });
+    ws.addRow({ name: "Catherine Lee", usn: "1RV21CS012", email: "catherine.lee@institution.edu", password: "Student@123" });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Student_Roster_Template.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   // Parse Uploaded Excel File
@@ -203,12 +224,37 @@ export default function StudentManagementPage() {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const XLSX = await import("xlsx");
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const firstSheetName = wb.SheetNames[0];
-        const ws = wb.Sheets[firstSheetName];
-        const rawJson: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        const ExcelJS = await import("exceljs");
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(arrayBuffer);
+
+        const ws = wb.worksheets[0];
+        if (!ws) {
+          throw new Error("The selected Excel file is empty or contains no worksheets.");
+        }
+
+        let headers: string[] = [];
+        const rawJson: any[] = [];
+
+        ws.eachRow((row, rowNumber) => {
+          const rowValues = row.values as any[];
+          if (rowNumber === 1) {
+            headers = (rowValues || []).slice(1).map((val) => String(val || "").trim().toLowerCase());
+          } else {
+            const rowData: Record<string, any> = {};
+            (rowValues || []).slice(1).forEach((val, idx) => {
+              const header = headers[idx] || `col_${idx}`;
+              let cleanVal = val;
+              if (cleanVal && typeof cleanVal === "object") {
+                if ("text" in cleanVal) cleanVal = cleanVal.text;
+                else if ("result" in cleanVal) cleanVal = cleanVal.result;
+              }
+              rowData[header] = cleanVal !== undefined && cleanVal !== null ? String(cleanVal).trim() : "";
+            });
+            rawJson.push(rowData);
+          }
+        });
 
         if (!rawJson || rawJson.length === 0) {
           throw new Error("The selected Excel file is empty or contains no student data rows.");
@@ -265,7 +311,7 @@ export default function StudentManagementPage() {
       }
     };
 
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   // Submit Batch Import
