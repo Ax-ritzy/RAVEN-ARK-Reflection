@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import InteractiveButton from "@/components/InteractiveButton";
 
 export default function UniversalLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -87,13 +89,13 @@ export default function UniversalLoginPage() {
             </motion.div>
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-peach-100/90 dark:bg-red-950/50 text-peach-800 dark:text-red-300 border border-peach-200/80 dark:border-red-500/30 mb-1.5">
-                Universal Portal
+                Portal
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                 Reflection AI Assessment
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Single sign-in with automated role routing
+                Sign in to access your assessment workspace
               </p>
             </div>
           </div>
@@ -112,14 +114,15 @@ export default function UniversalLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Institutional Email
+                Login
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="faculty@institution.edu, student@institution.edu..."
+                placeholder="Login"
+                autoComplete="email"
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500/50 transition-all shadow-sm"
               />
             </div>
@@ -128,14 +131,30 @@ export default function UniversalLoginPage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500/50 transition-all shadow-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500/50 transition-all shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none transition-colors"
+                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <InteractiveButton
@@ -143,28 +162,9 @@ export default function UniversalLoginPage() {
               disabled={loading}
               className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg"
             >
-              {loading ? "Authenticating & Routing..." : "Sign In to System →"}
+              {loading ? "Authenticating..." : "Sign In →"}
             </InteractiveButton>
           </form>
-
-          {/* Quick Info Badges */}
-          <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-semibold">
-              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-peach-50 dark:bg-red-950/40 text-peach-800 dark:text-red-300 border border-peach-200 dark:border-red-500/30">
-                🛡️ Faculty
-              </span>
-              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cool-50 dark:bg-cyan-950/40 text-cool-800 dark:text-cyan-300 border border-cool-200 dark:border-cyan-500/30">
-                🎓 Student
-              </span>
-              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
-                📚 Ref Contributor
-              </span>
-            </div>
-
-            <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 leading-relaxed">
-              Dynamic role detection routes each user directly to their authorized portal.
-            </p>
-          </div>
         </div>
       </motion.div>
     </div>
