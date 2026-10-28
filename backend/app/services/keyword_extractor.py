@@ -1,6 +1,12 @@
 import re
+import os
+import json
+import logging
+import urllib.request
 from collections import Counter
-from typing import List, Set
+from typing import List, Set, Optional
+
+logger = logging.getLogger(__name__)
 
 # Comprehensive academic & conversational stopword list
 # Excludes pronouns, conjunctions, prepositions, adverbs, and conversational fluff
@@ -35,7 +41,8 @@ FORBIDDEN_STOPWORDS: Set[str] = {
     "wherever", "why", "yes", "like", "sure", "maybe", "probably", "certainly",
     "smart", "quick", "clear", "core", "ceramic", "heat", "coffee", "cools", "cup",
     "mug", "thermometer", "paper", "words", "world", "thing", "things", "part",
-    "work", "works", "working",
+    "work", "works", "working", "sketching", "whispered", "functions", "either",
+    "neither", "invites", "lighting", "crumbling", "tells", "weaving", "scattered",
     
     # Auxiliary & Linking Verbs
     "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", 
@@ -45,18 +52,77 @@ FORBIDDEN_STOPWORDS: Set[str] = {
     "win", "put", "let", "see", "look", "run"
 }
 
+
+def extract_with_gemini(text: str, count: int = 5) -> Optional[List[str]]:
+    """
+    Extracts semantic keyphrases with strict domain & topic relevance using Google Gemini Flash API.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    prompt = f"""You are an expert curriculum evaluator and semantic topic-modeling engine.
+
+TASK:
+Analyze the following text and extract exactly {count} authoritative, domain-specific conceptual keyphrases (1 to 3 words each) that represent the core conceptual pillars, theories, or operational mechanics of the text.
+
+RULES:
+1. TOPIC RELEVANCE: Keywords must be deeply relevant to the subject matter of the document (e.g., if the topic is scientific research, extract methodological concepts; if the topic is tactical gaming like Valorant, extract game-specific mechanics; if business, extract strategic metrics).
+2. MULTI-WORD CONCEPTS PREFERRED: Prefer rich, multi-word conceptual phrases over single isolated generic words (e.g., "Educated guess", "Empirical evidence", "Value propositions", "Side-by-side check", "Statistical scrutiny").
+3. ZERO FILLER WORDS: Strictly avoid generic filler words, adverbs, or vague pronouns (e.g., "something", "instead", "gracefully", "altogether", "today", "really", "simply", "actually").
+4. CALIBRATED OUTPUT: Output strictly a valid JSON array containing exactly {count} string elements. No markdown formatting, no code block backticks, no conversational preamble.
+
+Example Output format:
+["Educated guess", "Prediction", "Test", "Side-by-side check", "Learn"]
+
+DOCUMENT TEXT:
+\"\"\"
+{text[:4000]}
+\"\"\""""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.1,
+            "responseMimeType": "application/json"
+        }
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            candidate = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+            parsed = json.loads(candidate)
+            if isinstance(parsed, list) and len(parsed) >= count:
+                return [str(x).strip() for x in parsed[:count]]
+    except Exception as e:
+        logger.warning(f"Gemini keyword extraction fallback triggered: {e}")
+        return None
+
+    return None
+
+
 def extract_top_keywords(text: str, count: int = 5) -> List[str]:
     """
     Extracts authoritative, multi-word conceptual keywords and keyphrases from reference text:
-    1. Segments text into semantic clauses.
-    2. Identifies contiguous conceptual phrases (e.g. 'Educated guess', 'Side-by-side check', 'Empirical evidence').
-    3. Purges all generic English conversational stopwords, filler adverbs, and vague pronouns.
-    4. Guarantees exactly `count` unique, high-quality, topic-relevant concepts.
+    1. Attempts Gemini Flash API for deep topic relevance.
+    2. Falls back seamlessly to intelligent POS-style collocation chunking if Gemini is unavailable.
     """
     if not text or not text.strip():
         raise ValueError("Document contains no readable text for keyword extraction.")
 
-    # Split into semantic clauses (by punctuation / boundaries)
+    # 1. Try Gemini first if API key is provided
+    gemini_result = extract_with_gemini(text, count=count)
+    if gemini_result and len(gemini_result) == count:
+        return gemini_result
+
+    # 2. Local Fallback: Multi-word clause chunking & stopword filtering
     clauses = re.split(r'[,.;:\n\(\)\[\]"\'`]+', text)
     candidates: Counter = Counter()
 
@@ -64,7 +130,7 @@ def extract_top_keywords(text: str, count: int = 5) -> List[str]:
         words = [w.strip("'- ") for w in re.findall(r'[a-zA-Z0-9\-]+', clause.lower()) if w.strip("'- ")]
         cur_phrase = []
         for w in words:
-            if w not in FORBIDDEN_STOPWORDS and len(w) >= 3:
+            if w not in FORBIDDEN_STOPWORDS and len(w) >= 3 and not w.endswith("ly"):
                 cur_phrase.append(w)
             else:
                 if len(cur_phrase) >= 2:
@@ -86,7 +152,6 @@ def extract_top_keywords(text: str, count: int = 5) -> List[str]:
     selected: List[str] = []
     for item in ranked:
         item_lower = item.lower()
-        # Avoid duplicate substrings (e.g. don't pick 'Guess' if 'Educated Guess' is already selected)
         is_sub = False
         for s in selected:
             s_lower = s.lower()
@@ -104,7 +169,7 @@ def extract_top_keywords(text: str, count: int = 5) -> List[str]:
         for w in all_words:
             w_title = w.title()
             w_lower = w.lower()
-            if w_lower not in FORBIDDEN_STOPWORDS and not any(w_lower in s.lower() for s in selected):
+            if w_lower not in FORBIDDEN_STOPWORDS and not w_lower.endswith("ly") and not any(w_lower in s.lower() for s in selected):
                 selected.append(w_title)
                 if len(selected) == count:
                     break

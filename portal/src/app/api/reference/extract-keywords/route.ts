@@ -8,82 +8,148 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // 1. Semantic Extraction using local Ollama Qwen 3.5:4B
-    const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
-    const prompt = `You are an academic curriculum evaluator. Analyze the following reference text for an academic reflection module titled "${title || 'Reflection Note'}".
+    // 1. High-Precision Semantic Extraction using Google Gemini Flash API
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (geminiApiKey) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+        const prompt = `You are an expert academic curriculum evaluator and semantic topic-modeling engine.
 
 TASK:
-Extract exactly 5 core subject-matter keywords or conceptual phrases (1 to 3 words each) that represent the specific learning concepts, theories, and key ideas in this text.
+Analyze the following reference text for an academic reflection module titled "${title || 'Reference Document'}".
+Extract exactly 5 core subject-matter keywords or conceptual keyphrases (1 to 3 words each) that represent the specific learning concepts, theories, and key ideas in this text.
 
 RULES:
-1. Do NOT select generic filler words, adverbs, or vague pronouns (e.g., "something", "instead", "gracefully", "altogether", "today", "really", "simply", "actually").
-2. Focus on conceptual terms, domain mechanics, and key ideas (e.g., "Educated guess", "Empirical evidence", "Key performance indicators", "Falsifiable proposition", "Side-by-side check").
-3. Return ONLY a valid JSON array of exactly 5 strings. No markdown formatting, no explanation, no backticks.
+1. TOPIC RELEVANCE: Keywords must be deeply relevant to the subject matter of the document (e.g., if the topic is scientific research, extract methodological concepts; if the topic is tactical gaming like Valorant, extract game-specific mechanics; if business, extract strategic metrics).
+2. MULTI-WORD CONCEPTS PREFERRED: Prefer rich, multi-word conceptual phrases over single isolated generic words (e.g., "Educated guess", "Empirical evidence", "Value propositions", "Side-by-side check", "Statistical scrutiny").
+3. ZERO FILLER WORDS: Strictly avoid generic filler words, adverbs, or vague pronouns (e.g., "something", "instead", "gracefully", "altogether", "today", "really", "simply", "actually").
+4. CALIBRATED OUTPUT: Output strictly a valid JSON array containing exactly 5 string elements. No markdown formatting, no code block backticks, no conversational preamble.
 
 Example Output format:
 ["Educated guess", "Prediction", "Test", "Side-by-side check", "Learn"]
 
 REFERENCE TEXT:
 """
-${text.slice(0, 3500)}
+${text.slice(0, 4000)}
 """`;
 
-    try {
-      const ollamaResp = await fetch(`${ollamaUrl}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "qwen3.5:4b",
-          prompt,
-          stream: false,
-          options: { temperature: 0.1 }
-        }),
-      });
+        const geminiResp = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json",
+            },
+          }),
+        });
 
-      if (ollamaResp.ok) {
-        const data = await ollamaResp.json();
-        const responseText = data.response || "";
-        
-        // Extract JSON array from LLM response
-        const jsonMatch = responseText.match(/\[[\s\S]*?\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (Array.isArray(parsed) && parsed.length >= 5) {
-            const clean = parsed.slice(0, 5).map((k: string) => String(k).trim().replace(/^["']|["']$/g, ''));
-            return NextResponse.json({ keywords: clean });
+        if (geminiResp.ok) {
+          const data = await geminiResp.json();
+          const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText) {
+            const parsed = JSON.parse(candidateText);
+            if (Array.isArray(parsed) && parsed.length >= 5) {
+              const clean = parsed.slice(0, 5).map((k: string) => String(k).trim().replace(/^["']|["']$/g, ""));
+              return NextResponse.json({ keywords: clean, source: "gemini" });
+            }
           }
+        } else {
+          const errText = await geminiResp.text();
+          console.warn("Gemini API call failed, falling back to local extractor:", errText);
         }
+      } catch (geminiErr) {
+        console.warn("Gemini extraction error:", geminiErr);
       }
-    } catch (ollamaErr) {
-      console.warn("Ollama extraction fallback triggered:", ollamaErr);
     }
 
-    // 2. Intelligent NLP Fallback (Filters out all common filler words/adverbs)
-    const fillerWords = new Set([
+    // 2. Intelligent Multi-Word Collocation Fallback (Runs if Gemini API key is missing or offline)
+    const forbiddenWords = new Set([
       "something", "instead", "gracefully", "altogether", "simply", "actually",
       "wondering", "happens", "grab", "wrong", "right", "away", "today", "turn",
       "turns", "keeps", "saying", "morning", "fast", "longer", "real", "helpful",
       "about", "their", "there", "these", "those", "which", "where", "while",
-      "could", "would", "should", "being", "having", "other", "every", "first"
+      "could", "would", "should", "being", "having", "other", "every", "first",
+      "second", "think", "sketching", "whispered", "functions", "either", "neither",
+      "invites", "lighting", "crumbling", "tells", "across", "before", "begins",
+      "quiet", "study", "weaving", "scattered", "clues", "bold", "neither", "settled",
+      "fragile", "bridge", "speak", "back", "fresh", "story", "works", "world"
     ]);
 
-    const words = text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, " ")
-      .split(/\s+/)
-      .filter((w: string) => w.length >= 4 && !fillerWords.has(w));
+    // Segment into clauses
+    const clauses = text.split(/[,.;:\n()\[\]"'`]+/);
+    const candidates: Map<string, number> = new Map();
 
-    const freqMap: Record<string, number> = {};
-    for (const w of words) {
-      freqMap[w] = (freqMap[w] || 0) + 1;
+    for (const clause of clauses) {
+      const tokens = clause
+        .toLowerCase()
+        .replace(/[^a-z0-9\-]/g, " ")
+        .split(/\s+/)
+        .map((t: string) => t.trim())
+        .filter((t: string) => t.length > 0);
+
+      let curPhrase: string[] = [];
+      for (const t of tokens) {
+        if (!forbiddenWords.has(t) && t.length >= 3 && !t.endsWith("ly")) {
+          curPhrase.push(t);
+        } else {
+          if (curPhrase.length >= 2) {
+            const p = curPhrase.slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+            candidates.set(p, (candidates.get(p) || 0) + 6);
+          } else if (curPhrase.length === 1 && curPhrase[0].length >= 4) {
+            const w = curPhrase[0].charAt(0).toUpperCase() + curPhrase[0].slice(1);
+            candidates.set(w, (candidates.get(w) || 0) + 2);
+          }
+          curPhrase = [];
+        }
+      }
+      if (curPhrase.length >= 2) {
+        const p = curPhrase.slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        candidates.set(p, (candidates.get(p) || 0) + 6);
+      } else if (curPhrase.length === 1 && curPhrase[0].length >= 4) {
+        const w = curPhrase[0].charAt(0).toUpperCase() + curPhrase[0].slice(1);
+        candidates.set(w, (candidates.get(w) || 0) + 2);
+      }
     }
 
-    const fallbackKeywords = Object.entries(freqMap)
+    const sorted = Array.from(candidates.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+      .map(([k]) => k);
 
-    return NextResponse.json({ keywords: fallbackKeywords });
+    const selected: string[] = [];
+    for (const item of sorted) {
+      const itemLower = item.toLowerCase();
+      let isSub = false;
+      for (const s of selected) {
+        const sLower = s.toLowerCase();
+        if (itemLower === sLower || itemLower.includes(sLower) || sLower.includes(itemLower)) {
+          isSub = true;
+          break;
+        }
+      }
+      if (!isSub) {
+        selected.push(item);
+      }
+      if (selected.length === 5) break;
+    }
+
+    // Pad if needed
+    if (selected.length < 5) {
+      const words = text
+        .replace(/[^a-zA-Z]/g, " ")
+        .split(/\s+/)
+        .filter((w: string) => w.length >= 4 && !forbiddenWords.has(w.toLowerCase()) && !w.toLowerCase().endsWith("ly"));
+      for (const w of words) {
+        const cap = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        if (!selected.some((s) => s.toLowerCase() === cap.toLowerCase())) {
+          selected.push(cap);
+        }
+        if (selected.length === 5) break;
+      }
+    }
+
+    return NextResponse.json({ keywords: selected.slice(0, 5), source: "fallback" });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Extraction failed" }, { status: 500 });
   }
