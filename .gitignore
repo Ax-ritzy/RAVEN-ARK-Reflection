@@ -45,3 +45,6 @@ coverage/
 
 # Supabase local
 .supabase/
+
+# Ad-hoc / Scratch scripts
+scripts/ad-hoc/
