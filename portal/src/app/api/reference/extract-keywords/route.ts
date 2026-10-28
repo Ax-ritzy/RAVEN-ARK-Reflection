@@ -8,12 +8,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // 1. High-Precision Semantic Extraction using Google Gemini Flash API
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (geminiApiKey) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-        const prompt = `You are an expert academic curriculum evaluator and semantic topic-modeling engine.
+    // 1. Dual-Key Gemini Flash Semantic Extraction with Auto-Failover on Quota/Token Exhaustion
+    const apiKeys = [
+      process.env.GEMINI_API_KEY,
+      process.env.GEMINI_API_KEY_FALLBACK,
+    ].filter((k): k is string => Boolean(k && k.trim()));
+
+    const prompt = `You are an academic curriculum evaluator and semantic topic-modeling engine.
 
 TASK:
 Analyze the following reference text for an academic reflection module titled "${title || 'Reference Document'}".
@@ -32,6 +33,11 @@ REFERENCE TEXT:
 """
 ${text.slice(0, 4000)}
 """`;
+
+    for (let i = 0; i < apiKeys.length; i++) {
+      const currentKey = apiKeys[i];
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${currentKey}`;
 
         const geminiResp = await fetch(geminiUrl, {
           method: "POST",
@@ -52,19 +58,23 @@ ${text.slice(0, 4000)}
             const parsed = JSON.parse(candidateText);
             if (Array.isArray(parsed) && parsed.length >= 5) {
               const clean = parsed.slice(0, 5).map((k: string) => String(k).trim().replace(/^["']|["']$/g, ""));
-              return NextResponse.json({ keywords: clean, source: "gemini" });
+              return NextResponse.json({
+                keywords: clean,
+                source: "gemini",
+                keyIndex: i + 1,
+              });
             }
           }
         } else {
           const errText = await geminiResp.text();
-          console.warn("Gemini API call failed, falling back to local extractor:", errText);
+          console.warn(`Gemini API Key #${i + 1} failed (Status: ${geminiResp.status}). Failing over to next key...`, errText);
         }
       } catch (geminiErr) {
-        console.warn("Gemini extraction error:", geminiErr);
+        console.warn(`Gemini API Key #${i + 1} network error, failing over...`, geminiErr);
       }
     }
 
-    // 2. Intelligent Multi-Word Collocation Fallback (Runs if Gemini API key is missing or offline)
+    // 2. Intelligent Multi-Word Collocation Fallback (Runs if all Gemini keys run out of quota or are offline)
     const forbiddenWords = new Set([
       "something", "instead", "gracefully", "altogether", "simply", "actually",
       "wondering", "happens", "grab", "wrong", "right", "away", "today", "turn",
@@ -77,7 +87,6 @@ ${text.slice(0, 4000)}
       "fragile", "bridge", "speak", "back", "fresh", "story", "works", "world"
     ]);
 
-    // Segment into clauses
     const clauses = text.split(/[,.;:\n()\[\]"'`]+/);
     const candidates: Map<string, number> = new Map();
 
@@ -134,7 +143,6 @@ ${text.slice(0, 4000)}
       if (selected.length === 5) break;
     }
 
-    // Pad if needed
     if (selected.length < 5) {
       const words = text
         .replace(/[^a-zA-Z]/g, " ")

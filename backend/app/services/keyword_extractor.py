@@ -56,12 +56,17 @@ FORBIDDEN_STOPWORDS: Set[str] = {
 def extract_with_gemini(text: str, count: int = 5) -> Optional[List[str]]:
     """
     Extracts semantic keyphrases with strict domain & topic relevance using Google Gemini Flash API.
+    Supports automatic token-exhaustion failover between primary GEMINI_API_KEY and secondary GEMINI_API_KEY_FALLBACK.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
+    api_keys = [
+        os.environ.get("GEMINI_API_KEY"),
+        os.environ.get("GEMINI_API_KEY_FALLBACK")
+    ]
+    api_keys = [k.strip() for k in api_keys if k and k.strip()]
+    if not api_keys:
         return None
 
-    prompt = f"""You are an expert curriculum evaluator and semantic topic-modeling engine.
+    prompt = f"""You are an academic curriculum evaluator and semantic topic-modeling engine.
 
 TASK:
 Analyze the following text and extract exactly {count} authoritative, domain-specific conceptual keyphrases (1 to 3 words each) that represent the core conceptual pillars, theories, or operational mechanics of the text.
@@ -80,7 +85,6 @@ DOCUMENT TEXT:
 {text[:4000]}
 \"\"\""""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -89,21 +93,22 @@ DOCUMENT TEXT:
         }
     }
 
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            candidate = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-            parsed = json.loads(candidate)
-            if isinstance(parsed, list) and len(parsed) >= count:
-                return [str(x).strip() for x in parsed[:count]]
-    except Exception as e:
-        logger.warning(f"Gemini keyword extraction fallback triggered: {e}")
-        return None
+    for idx, key in enumerate(api_keys):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={key}"
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                candidate = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                parsed = json.loads(candidate)
+                if isinstance(parsed, list) and len(parsed) >= count:
+                    return [str(x).strip() for x in parsed[:count]]
+        except Exception as e:
+            logger.warning(f"Gemini API Key #{idx + 1} error: {e}. Failing over to next key...")
 
     return None
 
@@ -111,13 +116,13 @@ DOCUMENT TEXT:
 def extract_top_keywords(text: str, count: int = 5) -> List[str]:
     """
     Extracts authoritative, multi-word conceptual keywords and keyphrases from reference text:
-    1. Attempts Gemini Flash API for deep topic relevance.
+    1. Attempts Gemini Flash API with dual-key auto-failover.
     2. Falls back seamlessly to intelligent POS-style collocation chunking if Gemini is unavailable.
     """
     if not text or not text.strip():
         raise ValueError("Document contains no readable text for keyword extraction.")
 
-    # 1. Try Gemini first if API key is provided
+    # 1. Try Gemini first (with dual-key failover)
     gemini_result = extract_with_gemini(text, count=count)
     if gemini_result and len(gemini_result) == count:
         return gemini_result
