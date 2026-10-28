@@ -31,8 +31,8 @@ A production-grade, dual-portal academic reflection evaluation platform powered 
                        | FastAPI Assessment Service |
                        |  - TXT, DOCX, PDF extract  |
                        |  - Multi-Ref Similarity    |
-                       |  - 15 Distinct Keywords    |
-                       |  - Score / 3 = Mark (0-5)  |
+                       |  - 5 Distinct Keywords    |
+                       |  - Score = Mark (0-5)  |
                        |  - openpyxl XLSX Exporter  |
                        +-------------+--------------+
                                      |
@@ -66,7 +66,7 @@ A production-grade, dual-portal academic reflection evaluation platform powered 
 
 1. **Deterministic Scoring:**
    - Reference Score = number of distinct reference keywords found in the reflection (0 to 15).
-   - Session Mark = $\frac{\text{Reference Score}}{15} \times 5 = \frac{\text{Reference Score}}{3}$ (0.00 to 5.00).
+   - Session Mark = $\frac{\text{Reference Score}}{5} \times 5 = (0.00 to 5.00).
    - Repeated keywords earn no additional points.
 2. **Strict Character Limit:**
    - Maximum 500 characters after extracting reflection body (ignoring document metadata and filenames).
