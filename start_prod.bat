@@ -1,4 +1,4 @@
 @echo off
-title Launching Reflection AI Assessment Platform (Production 0ms AOT)
+title Launch Reflection AI Platform (Development Mode)
 cd /d "%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_all.ps1" -Prod
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_all.ps1" -Mode Development

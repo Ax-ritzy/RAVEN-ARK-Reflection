@@ -1,4 +1,4 @@
 @echo off
-title Launch Reflection AI Platform
+title Launch Reflection AI Platform (Production Mode)
 cd /d "%~dp0"
-powershell -ExecutionPolicy Bypass -File "%~dp0start_all.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_all.ps1" -Mode Production
