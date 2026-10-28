@@ -78,14 +78,21 @@ export default function RootLayout({
                 className="flex items-center space-x-3 group"
               >
                 <motion.div
-                  whileHover={{ rotate: 12, scale: 1.08 }}
+                  whileHover={{ rotate: 8, scale: 1.08 }}
                   whileTap={{ scale: 0.92 }}
-                  className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 p-[2px] shadow-lg shadow-pink-500/25"
+                  className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 p-[2px] shadow-lg shadow-pink-500/25 shrink-0"
                 >
-                  <div className="w-full h-full bg-white dark:bg-[#0a0c16] rounded-[10px] flex items-center justify-center transition-colors">
-                    <span className="font-extrabold text-lg gradient-text-flame">
-                      R
-                    </span>
+                  <div className="w-full h-full bg-white dark:bg-[#0a0c16] rounded-[10px] flex items-center justify-center transition-colors overflow-hidden p-1">
+                    <img
+                      src="/raven-dark.png"
+                      alt="Reflection AI Logo"
+                      className="hidden dark:block w-full h-full object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]"
+                    />
+                    <img
+                      src="/raven-light.png"
+                      alt="Reflection AI Logo"
+                      className="block dark:hidden w-full h-full object-contain drop-shadow-[0_1px_4px_rgba(124,58,237,0.35)]"
+                    />
                   </div>
                 </motion.div>
                 <div>

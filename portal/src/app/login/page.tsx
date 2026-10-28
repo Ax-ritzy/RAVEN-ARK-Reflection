@@ -81,11 +81,23 @@ export default function UniversalLoginPage() {
           {/* Header */}
           <div className="text-center space-y-3">
             <motion.div
-              whileHover={{ rotate: 180, scale: 1.1 }}
-              transition={{ duration: 0.6 }}
-              className="w-14 h-14 bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 rounded-2xl mx-auto flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-pink-500/30"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ duration: 0.2 }}
+              className="w-16 h-16 bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 rounded-2xl mx-auto p-[2px] shadow-lg shadow-pink-500/30 flex items-center justify-center overflow-hidden"
             >
-              R
+              <div className="w-full h-full bg-white dark:bg-[#0a0c16] rounded-[14px] flex items-center justify-center p-2 transition-colors">
+                <img
+                  src="/raven-dark.png"
+                  alt="Reflection AI"
+                  className="hidden dark:block w-full h-full object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.7)]"
+                />
+                <img
+                  src="/raven-light.png"
+                  alt="Reflection AI"
+                  className="block dark:hidden w-full h-full object-contain drop-shadow-[0_1px_6px_rgba(124,58,237,0.35)]"
+                />
+              </div>
             </motion.div>
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-peach-100/90 dark:bg-red-950/50 text-peach-800 dark:text-red-300 border border-peach-200/80 dark:border-red-500/30 mb-1.5">
