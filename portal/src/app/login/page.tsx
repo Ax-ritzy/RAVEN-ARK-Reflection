@@ -77,16 +77,16 @@ export default function UniversalLoginPage() {
         {/* Animated Radiant 3D Gradient Liquid Aura */}
         <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-red-500/30 via-pink-500/30 via-purple-500/30 to-cyan-500/30 dark:from-red-500/40 dark:via-pink-500/40 dark:to-cyan-400/40 opacity-75 blur-xl animate-gradient-shift -z-10" />
 
-        <div className="liquid-glass-modal p-8 sm:p-10 shadow-2xl space-y-7 transition-colors">
+        <div className="liquid-glass-modal p-8 sm:p-10 shadow-2xl space-y-7 transition-colors relative z-10">
           {/* Header */}
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-3 relative z-10">
             <motion.div
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.94 }}
               transition={{ duration: 0.2 }}
-              className="w-16 h-16 bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 rounded-2xl mx-auto p-[2px] shadow-lg shadow-pink-500/30 flex items-center justify-center overflow-hidden"
+              className="w-16 h-16 bg-gradient-to-tr from-red-500 via-pink-500 via-purple-500 to-cyan-400 rounded-2xl mx-auto p-[2px] shadow-lg shadow-purple-500/30 flex items-center justify-center overflow-hidden"
             >
-              <div className="w-full h-full bg-white dark:bg-[#0a0c16] rounded-[14px] flex items-center justify-center p-2 transition-colors">
+              <div className="w-full h-full bg-white/80 dark:bg-[#0a0c16]/80 backdrop-blur-md rounded-[14px] flex items-center justify-center p-2 transition-colors border border-white/60 dark:border-white/10 shadow-inner">
                 <img
                   src="/raven-dark.png"
                   alt="Reflection AI"
@@ -100,13 +100,13 @@ export default function UniversalLoginPage() {
               </div>
             </motion.div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-peach-100/90 dark:bg-red-950/50 text-peach-800 dark:text-red-300 border border-peach-200/80 dark:border-red-500/30 mb-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 border border-purple-200/60 dark:border-purple-500/30 mb-1.5 backdrop-blur-md shadow-sm">
                 Portal
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                 Reflection AI Assessment
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-600 dark:text-slate-300/80 mt-1">
                 Sign in to access your assessment workspace
               </p>
             </div>
@@ -116,16 +116,16 @@ export default function UniversalLoginPage() {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2"
+              className="p-3.5 rounded-2xl bg-rose-50/80 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2 backdrop-blur-md relative z-10"
             >
               <span>⚠️</span>
               <span>{errorMsg}</span>
             </motion.div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4 relative z-10">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-1.5">
                 Login
               </label>
               <input
@@ -135,12 +135,12 @@ export default function UniversalLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Login"
                 autoComplete="email"
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500/50 transition-all shadow-sm"
+                className="w-full px-4 py-3 rounded-2xl border border-white/70 dark:border-white/10 bg-white/50 dark:bg-black/35 backdrop-blur-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/80 dark:focus:ring-purple-500/50 focus:bg-white/80 dark:focus:bg-black/60 transition-all shadow-inner"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -151,12 +151,12 @@ export default function UniversalLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                   autoComplete="current-password"
-                  className="w-full px-4 py-3 pr-12 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:focus:ring-cyan-500/50 transition-all shadow-sm"
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border border-white/70 dark:border-white/10 bg-white/50 dark:bg-black/35 backdrop-blur-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/80 dark:focus:ring-purple-500/50 focus:bg-white/80 dark:focus:bg-black/60 transition-all shadow-inner"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-100 focus:outline-none transition-colors"
                   title={showPassword ? "Hide password" : "Show password"}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -172,7 +172,7 @@ export default function UniversalLoginPage() {
             <InteractiveButton
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-lg"
+              className="w-full py-3.5 rounded-2xl text-sm font-bold shadow-xl shadow-purple-500/25 hover:shadow-purple-500/40 transition-all"
             >
               {loading ? "Authenticating..." : "Sign In →"}
             </InteractiveButton>
